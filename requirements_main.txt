@@ -1,0 +1,5 @@
+Django>=4.0.0
+python-decouple
+google-cloud-storage
+google-cloud-speech
+openai
