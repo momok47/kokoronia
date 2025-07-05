@@ -5,7 +5,7 @@ import torch
 import json
 import sys
 import os
-from zero_shot_learning import InterestsExtraction
+from zero_shot_learning_clean import ZeroShotLearning
 from google.cloud import storage
 
 GCS_BUCKET_NAME = "kokoronia"
@@ -52,15 +52,28 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
                          "ライフスタイル", "ビジネス", "読書", "キャリア", "デザイン", "IT", "経済投資","ネットワーク"]
         mecab_dic_path = '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302'
         
-        topic_analyzer = InterestsExtraction(
-            conversation_data=content["full_text"], 
+        # ZeroShotLearningクラスの初期化（新しいAPI）
+        topic_analyzer = ZeroShotLearning(
             model_name=model_name,
-            topic_labels=topic_labels,
             mecab_dic_path=mecab_dic_path
         )
         
-        # zero-shot-learning を実行
-        topic_analyzer.main_function(display_speaker_label=speaker_tag_override) 
+        # 会話データの準備（full_textとconversationの両方に対応）
+        conversation_data = content.get("conversation", content["full_text"])
+        
+        # 関心度分析の実行
+        insights = topic_analyzer.extract_insights(
+            conversation_data=conversation_data,
+            topic_labels=topic_labels,
+            display_speaker_label=speaker_tag_override
+        )
+        
+        print("\n=== 分析結果 ===")
+        print(f"検出されたトピック: {insights['best_topic']}")
+        print(f"トピックの信頼度: {insights['best_score']:.2f}")
+        print("\n発話量比率:")
+        for speaker, ratio in insights['speaker_ratios'].items():
+            print(f"  {speaker}: {ratio:.2f}")
         
     except Exception as e:
         print(f"エラーが発生しました: {e}")

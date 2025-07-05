@@ -27,6 +27,7 @@ dependencies = [
     "unidic-lite>=1.0.8",
     "mecab>=0.996.11",
     "ipadic>=1.0.0",
+    "openai>=1.93.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
