@@ -8,7 +8,7 @@
 ## 📋 概要
 
 **KOKORONIA**は、リアルタイム音声録音、文字起こし、興味分析を統合した次世代音声対話分析システムです。  
-CA Tech Loungeプロジェクトの一環として開発され、複数デバイスでの同時録音、Google Cloud Servicesを活用した高精度文字起こし、AI/MLによる感情・興味分析を提供します。
+CA Tech Loungeでの活動でメンターの方と開発し、複数デバイスでの同時録音、Google Cloud Servicesを活用した高精度文字起こし、AI/MLによる感情・興味分析を提供します。
 
 ## ✨ 主な機能
 
@@ -204,7 +204,7 @@ DATABASE_URL=sqlite:///db.sqlite3
 ## 👥 チーム
 
 - **[@momok47](https://github.com/momok47)** - メイン開発者
-- **CA Tech Lounge** - プロジェクトサポート
+- **CA Tech Loungeメンターさん** - プロジェクトサポート
 
 ## 🙋‍♀️ サポート
 
@@ -216,7 +216,3 @@ DATABASE_URL=sqlite:///db.sqlite3
 - [開発者ガイド](docs/development.md)
 - [デプロイメント](docs/deployment.md)
 - [よくある質問](docs/faq.md)
-
----
-
-**Made with ❤️ by CA Tech Lounge**
