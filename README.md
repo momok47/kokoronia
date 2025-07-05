@@ -1,0 +1,1 @@
+CA Tech Loungeでkokoroniaをローカルサービス化
