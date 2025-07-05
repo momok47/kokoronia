@@ -5,7 +5,7 @@ import torch
 import json
 import sys
 import os
-from zero_shot_learning_clean import ZeroShotLearning
+from .zero_shot_learning import ZeroShotLearning
 from google.cloud import storage
 
 GCS_BUCKET_NAME = "kokoronia"

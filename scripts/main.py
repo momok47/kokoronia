@@ -2,10 +2,14 @@ import os
 import sys
 import pyaudio
 import json
-from device2_audio_recorder import record_dual_audio
-from gcs_uploader import upload_to_gcs
-from transcribe_audio_from_gcs import transcribe_gcs
-from interests_extraction import analyze_transcription
+
+# プロジェクトルートをPYTHONPATHに追加
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.core.audio.device2_audio_recorder import record_dual_audio
+from src.core.gcs.gcs_uploader import upload_to_gcs
+from src.core.gcs.transcribe_audio_from_gcs import transcribe_gcs
+from src.core.analysis.interests_extraction import analyze_transcription
 
 def main():
     # GCSの設定
