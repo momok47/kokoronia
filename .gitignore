@@ -61,3 +61,4 @@ node_modules/ # Node.js のライブラリフォルダを無視
 
 # Office temporary files
 ~$*
+.env

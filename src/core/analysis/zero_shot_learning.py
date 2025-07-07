@@ -73,40 +73,27 @@ class ZeroShotLearning:
     def _calculate_complex_speech_ratios(self, conversations):
         '''複雑な発話量比率の計算（形態素解析使用）'''
         ok_hinshi = ["名詞", "動詞", "形容動詞", "形容詞"]
-        speaker_morph_count = {}
         speaker_match_count = {}
-        
         total_match_count = 0
         
-        # 各発話を形態素解析
+        # 一度のループで全体と話者別の両方をカウント
         for speaker, text in conversations:
             tagged = self.tagger.parse(text)
             morphs = [m for m in tagged.strip().split("\n") if m and m != "EOS"]
             
-            # 全体の形態素数を計算
-            for morph in morphs:
-                if any(hinshi in morph for hinshi in ok_hinshi):
-                    total_match_count += 1
-        
-        # 話者別の比率を計算
-        for speaker, text in conversations:
-            tagged = self.tagger.parse(text)
-            morphs = [m for m in tagged.strip().split("\n") if m and m != "EOS"]
-            
-            if speaker not in speaker_morph_count:
-                speaker_morph_count[speaker] = 0
+            if speaker not in speaker_match_count:
                 speaker_match_count[speaker] = 0
             
-            speaker_morph_count[speaker] += len(morphs)
-            
+            # 対象品詞の形態素をカウント
             for morph in morphs:
                 if any(hinshi in morph for hinshi in ok_hinshi):
                     speaker_match_count[speaker] += 1
+                    total_match_count += 1
         
         # 比率を計算
         speech_ratios = {}
-        for speaker in speaker_morph_count:
-            ratio = speaker_match_count[speaker] / total_match_count if total_match_count > 0 else 0
+        for speaker, count in speaker_match_count.items():
+            ratio = count / total_match_count if total_match_count > 0 else 0
             speech_ratios[speaker] = ratio
         
         return speech_ratios

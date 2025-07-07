@@ -5,10 +5,14 @@ import torch
 import json
 import sys
 import os
+from dotenv import load_dotenv
 from .zero_shot_learning import ZeroShotLearning
 from google.cloud import storage
 
-GCS_BUCKET_NAME = "kokoronia"
+# .envファイルを読み込み
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env'))
+
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "kokoronia")
 
 def get_transcription_content(blob_name):
     storage_client = storage.Client()
@@ -50,7 +54,7 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         model_name = "cl-tohoku/bert-base-japanese-whole-word-masking" 
         topic_labels = ["社会", "まなび", "テクノロジー", "カルチャー", "アウトドア", "フード", "旅行おでかけ",
                          "ライフスタイル", "ビジネス", "読書", "キャリア", "デザイン", "IT", "経済投資","ネットワーク"]
-        mecab_dic_path = '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302'
+        mecab_dic_path = os.getenv("MECAB_DIC_PATH", '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302')
         
         # ZeroShotLearningクラスの初期化（新しいAPI）
         topic_analyzer = ZeroShotLearning(
