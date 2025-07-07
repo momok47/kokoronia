@@ -45,8 +45,11 @@ distro==1.9.0
     # via openai
 django==5.2
     # via lounge
+<<<<<<< HEAD
 dotenv==0.9.9
     # via lounge
+=======
+>>>>>>> 3b8a734129ecace04756a6655e9e0eb9607d1735
 exceptiongroup==1.3.0
     # via anyio
     # via ipython

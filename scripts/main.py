@@ -4,11 +4,11 @@ import pyaudio
 import json
 from dotenv import load_dotenv
 
+# プロジェクトルートをPYTHONPATHに追加
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # .envファイルを読み込み
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
-
 from src.core.audio.device2_audio_recorder import record_dual_audio
 from src.core.gcs.gcs_uploader import upload_to_gcs
 from src.core.gcs.transcribe_audio_from_gcs import transcribe_gcs
