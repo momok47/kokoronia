@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if user.is_authenticated %}
+マイページ
+{% else %}
+メインページ
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            {% if user.is_authenticated %}
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">ようこそ {{ user.first_name }} {{ user.last_name }} さん</h2>
+                    <form method="post" action="{% url 'accounts:logout' %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-lg" style="background-color: #AFC5D9; color: #664B4F;">
+                            <i class="fas fa-sign-out-alt"></i> ログアウト
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">さあ、会話をはじめましょう</h2>
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'accounts:signup' %}" class="btn btn-lg" style="background-color: #BFD8C2; color: #664B4F;">
+                            <i class="fas fa-user-plus"></i> 新規登録
+                        </a>
+                        <a href="{% url 'accounts:login' %}" class="btn btn-lg" style="background-color: #AFC5D9; color: #664B4F;">
+                            <i class="fas fa-sign-in-alt"></i> ログイン
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
