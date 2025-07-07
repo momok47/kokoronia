@@ -209,10 +209,3 @@ DATABASE_URL=sqlite:///db.sqlite3
 ## 🙋‍♀️ サポート
 
 問題や質問がある場合は、[Issues](https://github.com/momok47/lounge/issues)を作成してください。
-
-## 📚 関連ドキュメント
-
-- [API Documentation](docs/api.md)
-- [開発者ガイド](docs/development.md)
-- [デプロイメント](docs/deployment.md)
-- [よくある質問](docs/faq.md)
