@@ -17,7 +17,7 @@ anyio==4.9.0
     # via openai
 appnope==0.1.4
     # via ipykernel
-asgiref==3.8.1
+asgiref==3.9.1
     # via django
 asttokens==3.0.0
     # via stack-data
@@ -25,41 +25,33 @@ beautifulsoup4==4.13.4
     # via google
 cachetools==5.5.2
     # via google-auth
-certifi==2024.12.14
+certifi==2025.6.15
     # via httpcore
     # via httpx
     # via requests
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
     # via requests
 comm==0.2.2
     # via ipykernel
-contourpy==1.3.1
+contourpy==1.3.2
     # via matplotlib
 cycler==0.12.1
     # via matplotlib
-debugpy==1.8.12
+debugpy==1.8.14
     # via ipykernel
-decorator==5.1.1
+decorator==5.2.1
     # via ipython
 distro==1.9.0
     # via openai
-django==5.2
+django==4.2.23
     # via lounge
-<<<<<<< HEAD
-dotenv==0.9.9
-    # via lounge
-=======
->>>>>>> 3b8a734129ecace04756a6655e9e0eb9607d1735
-exceptiongroup==1.3.0
-    # via anyio
-    # via ipython
 executing==2.2.0
     # via stack-data
 filelock==3.18.0
     # via huggingface-hub
     # via torch
     # via transformers
-fonttools==4.55.7
+fonttools==4.58.5
     # via matplotlib
 fsspec==2025.5.1
     # via huggingface-hub
@@ -68,11 +60,11 @@ fugashi==1.5.1
     # via lounge
 google==3.0.0
     # via lounge
-google-api-core==2.24.1
+google-api-core==2.25.1
     # via google-cloud-core
     # via google-cloud-speech
     # via google-cloud-storage
-google-auth==2.38.0
+google-auth==2.40.3
     # via google-api-core
     # via google-cloud-core
     # via google-cloud-speech
@@ -81,32 +73,32 @@ google-cloud==0.34.0
     # via lounge
 google-cloud-core==2.4.3
     # via google-cloud-storage
-google-cloud-speech==2.32.0
+google-cloud-speech==2.33.0
     # via lounge
-google-cloud-storage==3.1.0
+google-cloud-storage==3.2.0
     # via lounge
 google-crc32c==1.7.1
     # via google-cloud-storage
     # via google-resumable-media
 google-resumable-media==2.7.2
     # via google-cloud-storage
-googleapis-common-protos==1.68.0
+googleapis-common-protos==1.70.0
     # via google-api-core
     # via grpcio-status
-grpcio==1.72.1
+grpcio==1.73.1
     # via google-api-core
     # via grpcio-status
-grpcio-status==1.71.0
+grpcio-status==1.73.1
     # via google-api-core
 h11==0.16.0
     # via httpcore
-hf-xet==1.1.4
+hf-xet==1.1.5
     # via huggingface-hub
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via openai
-huggingface-hub==0.33.0
+huggingface-hub==0.33.2
     # via tokenizers
     # via transformers
 idna==3.10
@@ -117,8 +109,10 @@ ipadic==1.0.0
     # via lounge
 ipykernel==6.29.5
     # via lounge
-ipython==8.31.0
+ipython==9.4.0
     # via ipykernel
+ipython-pygments-lexers==1.1.1
+    # via ipython
 japanize-matplotlib==1.1.3
     # via lounge
 jedi==0.19.2
@@ -129,14 +123,14 @@ jiter==0.10.0
     # via openai
 jupyter-client==8.6.3
     # via ipykernel
-jupyter-core==5.7.2
+jupyter-core==5.8.1
     # via ipykernel
     # via jupyter-client
 kiwisolver==1.4.8
     # via matplotlib
 markupsafe==3.0.2
     # via jinja2
-matplotlib==3.10.0
+matplotlib==3.10.3
     # via japanize-matplotlib
     # via lounge
 matplotlib-inline==0.1.7
@@ -150,46 +144,46 @@ mpmath==1.3.0
     # via sympy
 nest-asyncio==1.6.0
     # via ipykernel
-networkx==3.4.2
+networkx==3.5
     # via torch
-numpy==2.2.2
+numpy==2.3.1
     # via contourpy
     # via lounge
     # via matplotlib
     # via pandas
     # via sox
     # via transformers
-openai==1.93.0
+openai==1.93.2
     # via lounge
-packaging==24.2
+packaging==25.0
     # via huggingface-hub
     # via ipykernel
     # via matplotlib
     # via transformers
-pandas==2.3.0
+pandas==2.3.1
     # via lounge
 parso==0.8.4
     # via jedi
 pexpect==4.9.0
     # via ipython
-pillow==11.1.0
+pillow==11.3.0
     # via matplotlib
-plac==1.4.3
+plac==1.4.5
     # via unidic
-platformdirs==4.3.6
+platformdirs==4.3.8
     # via jupyter-core
-prompt-toolkit==3.0.50
+prompt-toolkit==3.0.51
     # via ipython
-proto-plus==1.26.0
+proto-plus==1.26.1
     # via google-api-core
     # via google-cloud-speech
-protobuf==5.29.3
+protobuf==6.31.1
     # via google-api-core
     # via google-cloud-speech
     # via googleapis-common-protos
     # via grpcio-status
     # via proto-plus
-psutil==6.1.1
+psutil==7.0.0
     # via ipykernel
 ptyprocess==0.7.0
     # via pexpect
@@ -198,7 +192,7 @@ pure-eval==0.2.3
 pyasn1==0.6.1
     # via pyasn1-modules
     # via rsa
-pyasn1-modules==0.4.1
+pyasn1-modules==0.4.2
     # via google-auth
 pyaudio==0.2.14
     # via lounge
@@ -206,16 +200,16 @@ pydantic==2.11.7
     # via openai
 pydantic-core==2.33.2
     # via pydantic
-pygments==2.19.1
+pygments==2.19.2
     # via ipython
-pyparsing==3.2.1
+    # via ipython-pygments-lexers
+pyparsing==3.2.3
     # via matplotlib
 python-dateutil==2.9.0.post0
     # via jupyter-client
     # via matplotlib
     # via pandas
 python-dotenv==1.1.1
-    # via dotenv
     # via lounge
 pytz==2025.2
     # via pandas
@@ -223,21 +217,23 @@ pyyaml==6.0.2
     # via huggingface-hub
     # via lounge
     # via transformers
-pyzmq==26.2.0
+pyzmq==27.0.0
     # via ipykernel
     # via jupyter-client
 regex==2024.11.6
     # via transformers
-requests==2.32.3
+requests==2.32.4
     # via google-api-core
     # via google-cloud-storage
     # via huggingface-hub
     # via transformers
     # via unidic
-rsa==4.9
+rsa==4.9.1
     # via google-auth
 safetensors==0.5.3
     # via transformers
+setuptools==80.9.0
+    # via torch
 six==1.17.0
     # via python-dateutil
 sniffio==1.3.1
@@ -253,11 +249,11 @@ stack-data==0.6.3
     # via ipython
 sympy==1.14.0
     # via torch
-tokenizers==0.21.1
+tokenizers==0.21.2
     # via transformers
 torch==2.7.1
     # via lounge
-tornado==6.4.2
+tornado==6.5.1
     # via ipykernel
     # via jupyter-client
 tqdm==4.67.1
@@ -272,15 +268,11 @@ traitlets==5.14.3
     # via jupyter-client
     # via jupyter-core
     # via matplotlib-inline
-transformers==4.52.4
+transformers==4.53.1
     # via lounge
-typing-extensions==4.12.2
-    # via anyio
-    # via asgiref
+typing-extensions==4.14.1
     # via beautifulsoup4
-    # via exceptiongroup
     # via huggingface-hub
-    # via ipython
     # via openai
     # via pydantic
     # via pydantic-core
@@ -295,7 +287,7 @@ unidic==1.1.0
     # via lounge
 unidic-lite==1.0.8
     # via lounge
-urllib3==2.3.0
+urllib3==2.5.0
     # via requests
 wasabi==0.10.1
     # via unidic
