@@ -1,4 +1,0 @@
-pyaudio==0.2.14
-google-cloud-storage==2.14.0
-wave==0.0.2
-python-dotenv
