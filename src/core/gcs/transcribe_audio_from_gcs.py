@@ -1,17 +1,40 @@
 import os
 import json
+import re
 from google.cloud import speech_v1p1beta1 as speech
+
+def clean_japanese_text(text):
+    """
+    音素記号形式のテキストをクリーンアップする
+    例: "佐藤|サトー" -> "佐藤"
+    """
+    if not text:
+        return ""
+    
+    # 音素記号（|記号で区切られた読み情報）を除去
+    # パターン: "漢字|ヨミ" -> "漢字"
+    cleaned = re.sub(r'([^\|]+)\|[^\|]*', r'\1', text)
+    
+    # 残った単独の|記号を除去
+    cleaned = re.sub(r'\|+', '', cleaned)
+    
+    # 複数のスペースを1つに統一
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    
+    return cleaned.strip()
 
 def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
     """
     Args:
-        gcs_uri (str): 文字起こしする音声ファイルのGCS URI (例: "gs://your-bucket/audio.wav")。
-        user_speaker_tag (str, optional): 発言者の名前を示すタグ。デフォルトは"unknown"。
+        gcs_uri (str): 文字起こしする音声ファイルのGCS URI
+        user_speaker_tag (str, optional): 発言者の名前を示すタグ
 
     Returns:
-        dict: 文字起こしされたテキスト全体と、話者ごとの発言を含む辞書。
-              形式: {'full_text': '文字起こし', 'speakers': {'話者名': [{'text': '発言', 'start_time': 0.0, 'end_time': 1.5}, ...]}, 'conversation': [...]}
-              文字起こしに失敗した場合は None。
+        dict: 最適化された文字起こし結果
+              形式: {
+                  'conversation': [{'speaker': '話者名', 'text': '発言', 'start_time': 0.0, 'end_time': 1.5}],
+                  'full_text': '全体テキスト'
+              }
     """
     client = speech.SpeechClient()
     audio = speech.RecognitionAudio(uri=gcs_uri)
@@ -21,8 +44,8 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
         sample_rate_hertz=44100,
         language_code="ja-JP",
         enable_automatic_punctuation=True,
-        enable_word_time_offsets=True,  # 単語レベルの時間情報を取得するために必要
-        enable_speaker_diarization=False # 話者ダイアライゼーションを無効にする
+        enable_word_time_offsets=True,
+        enable_speaker_diarization=False
     )
 
     print("文字起こし処理を開始しています...")
@@ -33,92 +56,63 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
         print(f"文字起こしAPI呼び出し中にエラーが発生しました: {e}")
         return None
 
-    transcription_data = {
-        "full_text": "",
-        "speakers": {},
-        "conversation": []
-    }
-
+    # 文字起こし結果の収集
     full_transcript_buffer = []
-    all_words = [] # すべての単語情報を保持するリスト
+    all_words = []
 
-    # すべてのResultからtranscriptとwordsを収集
     for i, result in enumerate(response.results):
         if result.alternatives:
             transcript = result.alternatives[0].transcript
             full_transcript_buffer.append(transcript)
             
             if hasattr(result.alternatives[0], 'words') and result.alternatives[0].words:
-                words_in_this_result = len(result.alternatives[0].words)
-                print(f"Result {i}: {words_in_this_result} words found")
                 all_words.extend(result.alternatives[0].words)
-            else:
-                print(f"Result {i}: No words information available")
-    
-    transcription_data["full_text"] = " ".join(full_transcript_buffer).strip()
-    print(f"Full text: '{transcription_data['full_text']}'")
 
-    if not all_words:
-        print("警告: 単語情報が取得できませんでした。full_textから基本情報を作成します。")
-        # 単語情報がない場合でもfull_textから基本的な会話データを作成
-        if transcription_data["full_text"]:
-            if user_speaker_tag not in transcription_data["speakers"]:
-                transcription_data["speakers"][user_speaker_tag] = []
+    # テキストのクリーンアップ
+    raw_full_text = " ".join(full_transcript_buffer).strip()
+    cleaned_full_text = clean_japanese_text(raw_full_text)
+    
+    print(f"認識されたテキスト: '{cleaned_full_text}'")
+
+    # 最適化されたデータ構造
+    transcription_data = {
+        "conversation": [],
+        "full_text": cleaned_full_text
+    }
+
+    if all_words:
+        try:
+            # 単語レベルのテキストをクリーンアップ
+            raw_combined_text = "".join([word_info.word for word_info in all_words])
+            cleaned_combined_text = clean_japanese_text(raw_combined_text)
             
-            transcription_data["speakers"][user_speaker_tag].append({
-                "text": transcription_data["full_text"],
-                "start_time": 0.0,
-                "end_time": 0.0  # 時間情報が取得できない場合は0
-            })
+            first_word_time = all_words[0].start_time.total_seconds()
+            last_word_time = all_words[-1].end_time.total_seconds()
 
             transcription_data["conversation"].append({
                 "speaker": user_speaker_tag,
-                "text": transcription_data["full_text"],
-                "start_time": 0.0,
-                "end_time": 0.0
+                "text": cleaned_combined_text,
+                "start_time": first_word_time,
+                "end_time": last_word_time
             })
-        return transcription_data
-
-    # 単一話者のため、全ての単語をuser_speaker_tagに関連付ける
-    if user_speaker_tag not in transcription_data["speakers"]:
-        transcription_data["speakers"][user_speaker_tag] = []
-    
-    try:
-        # すべての単語を結合して1つの発言として処理
-        # 日本語の場合、単語をそのまま結合
-        combined_text = "".join([word_info.word for word_info in all_words])
-        first_word_time = all_words[0].start_time.total_seconds()
-        last_word_time = all_words[-1].end_time.total_seconds()
-
-
-        transcription_data["speakers"][user_speaker_tag].append({
-            "text": combined_text.strip(),
-            "start_time": first_word_time,
-            "end_time": last_word_time
-        })
-
-        transcription_data["conversation"].append({
-            "speaker": user_speaker_tag,
-            "text": combined_text.strip(),
-            "start_time": first_word_time,
-            "end_time": last_word_time
-        })
-        
-        print(f"Successfully created conversation data for {user_speaker_tag}")
-        
-    except Exception as e:
-        print(f"単語データの処理中にエラーが発生しました: {e}")
-        # フォールバックとしてfull_textを使用
-        if transcription_data["full_text"]:
-            transcription_data["speakers"][user_speaker_tag].append({
-                "text": transcription_data["full_text"],
-                "start_time": 0.0,
-                "end_time": 0.0
-            })
-
+            
+        except Exception as e:
+            print(f"単語データの処理中にエラーが発生しました: {e}")
+            # フォールバック: full_textを使用
+            if cleaned_full_text:
+                transcription_data["conversation"].append({
+                    "speaker": user_speaker_tag,
+                    "text": cleaned_full_text,
+                    "start_time": 0.0,
+                    "end_time": 0.0
+                })
+    else:
+        # 単語情報がない場合のフォールバック
+        print("警告: 単語情報が取得できませんでした。")
+        if cleaned_full_text:
             transcription_data["conversation"].append({
                 "speaker": user_speaker_tag,
-                "text": transcription_data["full_text"],
+                "text": cleaned_full_text,
                 "start_time": 0.0,
                 "end_time": 0.0
             })

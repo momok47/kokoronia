@@ -29,6 +29,9 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "pyaudio>=0.2.14",
+    "dimod>=0.12.0",
+    "dwave-neal>=0.6.0",
+    "dwave-ocean-sdk>=8.0.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.13"

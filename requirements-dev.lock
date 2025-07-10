@@ -21,36 +21,103 @@ asgiref==3.9.1
     # via django
 asttokens==3.0.0
     # via stack-data
+authlib==1.6.0
+    # via dwave-cloud-client
 beautifulsoup4==4.13.4
     # via google
+blinker==1.9.0
+    # via flask
 cachetools==5.5.2
     # via google-auth
 certifi==2025.6.15
     # via httpcore
     # via httpx
     # via requests
+cffi==1.17.1
+    # via cryptography
 charset-normalizer==3.4.2
     # via requests
+click==8.2.1
+    # via dwave-cloud-client
+    # via dwave-hybrid
+    # via flask
 comm==0.2.2
     # via ipykernel
 contourpy==1.3.2
     # via matplotlib
+cryptography==45.0.5
+    # via authlib
 cycler==0.12.1
     # via matplotlib
 debugpy==1.8.14
     # via ipykernel
 decorator==5.2.1
     # via ipython
+dimod==0.12.20
+    # via dwave-hybrid
+    # via dwave-inspector
+    # via dwave-networkx
+    # via dwave-ocean-sdk
+    # via dwave-preprocessing
+    # via dwave-samplers
+    # via dwave-system
+    # via dwavebinarycsp
+    # via lounge
+    # via penaltymodel
+diskcache==5.6.3
+    # via dwave-cloud-client
 distro==1.9.0
     # via openai
 django==4.2.23
     # via lounge
+dwave-cloud-client==0.13.6
+    # via dwave-hybrid
+    # via dwave-inspector
+    # via dwave-ocean-sdk
+    # via dwave-system
+dwave-gate==0.3.4
+    # via dwave-ocean-sdk
+dwave-hybrid==0.6.14
+    # via dwave-ocean-sdk
+dwave-inspector==0.5.4
+    # via dwave-ocean-sdk
+dwave-neal==0.6.0
+    # via lounge
+dwave-networkx==0.8.18
+    # via dwave-hybrid
+    # via dwave-ocean-sdk
+    # via dwave-system
+    # via minorminer
+dwave-ocean-sdk==8.4.0
+    # via lounge
+dwave-optimization==0.6.2
+    # via dwave-ocean-sdk
+    # via dwave-system
+dwave-preprocessing==0.6.9
+    # via dwave-hybrid
+    # via dwave-ocean-sdk
+    # via dwave-system
+dwave-samplers==1.6.0
+    # via dwave-hybrid
+    # via dwave-neal
+    # via dwave-ocean-sdk
+    # via dwave-system
+dwave-system==1.32.0
+    # via dwave-hybrid
+    # via dwave-inspector
+    # via dwave-ocean-sdk
+dwavebinarycsp==0.3.1
+    # via dwave-ocean-sdk
 executing==2.2.0
     # via stack-data
+fasteners==0.19
+    # via minorminer
 filelock==3.18.0
     # via huggingface-hub
     # via torch
     # via transformers
+flask==3.1.1
+    # via dwave-inspector
 fonttools==4.58.5
     # via matplotlib
 fsspec==2025.5.1
@@ -94,6 +161,11 @@ h11==0.16.0
     # via httpcore
 hf-xet==1.1.5
     # via huggingface-hub
+homebase==1.0.1
+    # via dwave-cloud-client
+    # via dwave-system
+    # via minorminer
+    # via penaltymodel
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
@@ -105,6 +177,8 @@ idna==3.10
     # via anyio
     # via httpx
     # via requests
+importlib-metadata==8.7.0
+    # via dwave-cloud-client
 ipadic==1.0.0
     # via lounge
 ipykernel==6.29.5
@@ -113,11 +187,14 @@ ipython==9.4.0
     # via ipykernel
 ipython-pygments-lexers==1.1.1
     # via ipython
+itsdangerous==2.2.0
+    # via flask
 japanize-matplotlib==1.1.3
     # via lounge
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
+    # via flask
     # via torch
 jiter==0.10.0
     # via openai
@@ -129,7 +206,9 @@ jupyter-core==5.8.1
 kiwisolver==1.4.8
     # via matplotlib
 markupsafe==3.0.2
+    # via flask
     # via jinja2
+    # via werkzeug
 matplotlib==3.10.3
     # via japanize-matplotlib
     # via lounge
@@ -140,22 +219,48 @@ mecab==0.996.11
     # via lounge
 mecab-python3==1.0.10
     # via lounge
+minorminer==0.2.19
+    # via dwave-hybrid
+    # via dwave-ocean-sdk
+    # via dwave-system
 mpmath==1.3.0
     # via sympy
 nest-asyncio==1.6.0
     # via ipykernel
 networkx==3.5
+    # via dwave-hybrid
+    # via dwave-networkx
+    # via dwave-samplers
+    # via dwavebinarycsp
+    # via minorminer
+    # via penaltymodel
     # via torch
 numpy==2.3.1
     # via contourpy
+    # via dimod
+    # via dwave-gate
+    # via dwave-hybrid
+    # via dwave-inspector
+    # via dwave-networkx
+    # via dwave-optimization
+    # via dwave-preprocessing
+    # via dwave-samplers
+    # via dwave-system
     # via lounge
     # via matplotlib
+    # via minorminer
     # via pandas
+    # via penaltymodel
+    # via scipy
     # via sox
     # via transformers
 openai==1.93.2
     # via lounge
+orjson==3.10.18
+    # via dwave-cloud-client
+    # via dwave-inspector
 packaging==25.0
+    # via dwave-cloud-client
     # via huggingface-hub
     # via ipykernel
     # via matplotlib
@@ -164,6 +269,9 @@ pandas==2.3.1
     # via lounge
 parso==0.8.4
     # via jedi
+penaltymodel==1.2.0
+    # via dwave-ocean-sdk
+    # via dwavebinarycsp
 pexpect==4.9.0
     # via ipython
 pillow==11.3.0
@@ -172,6 +280,9 @@ plac==1.4.5
     # via unidic
 platformdirs==4.3.8
     # via jupyter-core
+plucky==0.4.3
+    # via dwave-cloud-client
+    # via dwave-hybrid
 prompt-toolkit==3.0.51
     # via ipython
 proto-plus==1.26.1
@@ -196,7 +307,10 @@ pyasn1-modules==0.4.2
     # via google-auth
 pyaudio==0.2.14
     # via lounge
+pycparser==2.22
+    # via cffi
 pydantic==2.11.7
+    # via dwave-cloud-client
     # via openai
 pydantic-core==2.33.2
     # via pydantic
@@ -205,7 +319,10 @@ pygments==2.19.2
     # via ipython-pygments-lexers
 pyparsing==3.2.3
     # via matplotlib
+pysocks==1.7.1
+    # via requests
 python-dateutil==2.9.0.post0
+    # via dwave-cloud-client
     # via jupyter-client
     # via matplotlib
     # via pandas
@@ -223,6 +340,7 @@ pyzmq==27.0.0
 regex==2024.11.6
     # via transformers
 requests==2.32.4
+    # via dwave-cloud-client
     # via google-api-core
     # via google-cloud-storage
     # via huggingface-hub
@@ -232,6 +350,10 @@ rsa==4.9.1
     # via google-auth
 safetensors==0.5.3
     # via transformers
+scipy==1.16.0
+    # via dwave-system
+    # via minorminer
+    # via penaltymodel
 setuptools==80.9.0
     # via torch
 six==1.17.0
@@ -272,6 +394,7 @@ transformers==4.53.1
     # via lounge
 typing-extensions==4.14.1
     # via beautifulsoup4
+    # via dwave-cloud-client
     # via huggingface-hub
     # via openai
     # via pydantic
@@ -288,8 +411,14 @@ unidic==1.1.0
 unidic-lite==1.0.8
     # via lounge
 urllib3==2.5.0
+    # via dwave-cloud-client
     # via requests
 wasabi==0.10.1
     # via unidic
 wcwidth==0.2.13
     # via prompt-toolkit
+werkzeug==3.1.3
+    # via dwave-cloud-client
+    # via flask
+zipp==3.23.0
+    # via importlib-metadata
