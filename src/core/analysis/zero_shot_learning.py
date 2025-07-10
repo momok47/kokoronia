@@ -26,7 +26,6 @@ class ZeroShotLearning:
         return result
         
     def extract_insights(self, conversation_data, topic_labels, display_speaker_label=None):
-        '''会話から洞察を抽出（軽量版 + 複雑な発話量計算）'''
         # 会話データの準備
         conversations = self._prepare_conversation_data(conversation_data)
         
@@ -47,11 +46,8 @@ class ZeroShotLearning:
             )
             all_results.append((speaker, result))
         
-        # 形態素解析による発話量計算
-        speech_ratios = self._calculate_complex_speech_ratios(conversations)
-        
         # 結果の集計
-        insights = self._aggregate_results(all_results, speech_ratios, topic_labels, display_speaker_label)
+        insights = self._aggregate_results(all_results, topic_labels, display_speaker_label)
         return insights
     
     def _prepare_conversation_data(self, conversation_data):
@@ -70,35 +66,9 @@ class ZeroShotLearning:
         
         return conversations
     
-    def _calculate_complex_speech_ratios(self, conversations):
-        '''複雑な発話量比率の計算（形態素解析使用）'''
-        ok_hinshi = ["名詞", "動詞", "形容動詞", "形容詞"]
-        speaker_match_count = {}
-        total_match_count = 0
-        
-        # 一度のループで全体と話者別の両方をカウント
-        for speaker, text in conversations:
-            tagged = self.tagger.parse(text)
-            morphs = [m for m in tagged.strip().split("\n") if m and m != "EOS"]
-            
-            if speaker not in speaker_match_count:
-                speaker_match_count[speaker] = 0
-            
-            # 対象品詞の形態素をカウント
-            for morph in morphs:
-                if any(hinshi in morph for hinshi in ok_hinshi):
-                    speaker_match_count[speaker] += 1
-                    total_match_count += 1
-        
-        # 比率を計算
-        speech_ratios = {}
-        for speaker, count in speaker_match_count.items():
-            ratio = count / total_match_count if total_match_count > 0 else 0
-            speech_ratios[speaker] = ratio
-        
-        return speech_ratios
+
     
-    def _aggregate_results(self, all_results, speech_ratios, topic_labels, display_speaker_label):
+    def _aggregate_results(self, all_results, topic_labels, display_speaker_label):
         '''結果の集計'''
         # トピック別の平均スコア計算
         topic_scores = {label: [] for label in topic_labels}
@@ -122,30 +92,15 @@ class ZeroShotLearning:
             best_topic = "不明"
             best_score = 0.0
         
+        """
         # ラベルごとの予測値を表示
         sorted_topic_scores = sorted(avg_topic_scores.items(), key=lambda x: x[1], reverse=True)
         for i, (label, score) in enumerate(sorted_topic_scores):
             print(f"{i+1}: [{label}, [{score:.4f}]]")
-        
-        # 結果の出力
-        print("＝＝＝＝＝")
-        if display_speaker_label:
-            print(f"{display_speaker_label}さんの会話ログのトピック: {best_topic}")
-        else:
-            print(f"会話ログのトピック: {best_topic}")
-        
-        # 関心度の計算（形態素解析による発話量比率×トピックスコア）
-        interest_scores = []
-        for speaker, ratio in speech_ratios.items():
-            interest_score = best_score * ratio * 100
-            score_text = f"{speaker}の関心度: {interest_score:.2f}%"
-            interest_scores.append(score_text)
-            print(score_text)
+        """
         
         return {
             "best_topic": best_topic,
             "best_score": best_score,
-            "topic_scores": avg_topic_scores,
-            "interest_scores": interest_scores,
-            "speaker_ratios": speech_ratios
+            "topic_scores": avg_topic_scores
         }

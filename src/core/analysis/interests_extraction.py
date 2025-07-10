@@ -9,6 +9,24 @@ from dotenv import load_dotenv
 from .zero_shot_learning import ZeroShotLearning
 from google.cloud import storage
 
+# Django設定の初期化（分析スクリプト単体実行時）
+if not hasattr(sys, '_django_setup_done'):
+    django_project_root = os.path.join(os.path.dirname(__file__), '..', '..', 'webapp')
+    sys.path.insert(0, django_project_root)
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
+    
+    import django
+    django.setup()
+    sys._django_setup_done = True
+
+# Django関連のインポート（setup後に実行）
+try:
+    from accounts.utils import save_user_insights, print_user_topic_summary
+    DJANGO_AVAILABLE = True
+except ImportError:
+    DJANGO_AVAILABLE = False
+    print("警告: Django環境が利用できません。分析結果はデータベースに保存されません。")
+
 # .envファイルを読み込み
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env'))
 
@@ -29,26 +47,10 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         speaker_tag_override (str, optional): 話者タグの上書き設定。Noneの場合は元の話者タグを使用
         
     Returns:
-        None: 関数は結果を出力するのみで戻り値なし
+        dict: 分析結果を含む辞書。失敗時はNone
     """
     try:
         content = get_transcription_content(transcription_blob_name)
-        """
-        print("\n=== 会話の時系列 ===")
-        sorted_utterances = sorted(content["conversation"], key=lambda x: x["start_time"])
-        for utterance in sorted_utterances:
-            start_time = int(utterance["start_time"])
-            end_time = int(utterance["end_time"])
-            
-            start_min = start_time // 60
-            start_sec = start_time % 60
-            end_min = end_time // 60
-            end_sec = end_time % 60
-            
-            text = utterance["text"].replace("  ", " ").strip()
-            # JSONから取得したspeakerタグをそのまま表示
-            print(f"{utterance['speaker']}: [{start_min}分{start_sec}秒 - {end_min}分{end_sec}秒] {text}")
-        """
 
         print("\n=== 関心度分析を開始します ===")
         model_name = "cl-tohoku/bert-base-japanese-whole-word-masking" 
@@ -74,14 +76,26 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         
         print("\n=== 分析結果 ===")
         print(f"検出されたトピック: {insights['best_topic']}")
-        print(f"トピックの信頼度: {insights['best_score']:.2f}")
-        print("\n発話量比率:")
-        for speaker, ratio in insights['speaker_ratios'].items():
-            print(f"  {speaker}: {ratio:.2f}")
+        print(f"トピックの信頼度: {insights['best_score']:.4f}")
+        
+        # データベースに保存（Django環境が利用可能な場合）
+        if DJANGO_AVAILABLE and speaker_tag_override:
+            print("\n=== データベース保存 ===")
+            success, message, topic_score = save_user_insights(speaker_tag_override, insights)
+            print(message)
+            
+            if success:
+                """
+                # ユーザーのトピックスコア要約を表示
+                print_user_topic_summary(speaker_tag_override)
+                """
+        
+        return insights
         
     except Exception as e:
         print(f"エラーが発生しました: {e}")
         print("関心度分析中にエラーが発生しました。モデルのロード、MeCabの設定、または外部ライブラリのインストールを確認してください。")
+        return None
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

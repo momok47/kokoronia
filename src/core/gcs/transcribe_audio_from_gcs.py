@@ -47,7 +47,6 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
         if result.alternatives:
             transcript = result.alternatives[0].transcript
             full_transcript_buffer.append(transcript)
-            print(f"Result {i}: transcript = '{transcript}'")
             
             if hasattr(result.alternatives[0], 'words') and result.alternatives[0].words:
                 words_in_this_result = len(result.alternatives[0].words)
@@ -57,7 +56,6 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
                 print(f"Result {i}: No words information available")
     
     transcription_data["full_text"] = " ".join(full_transcript_buffer).strip()
-    print(f"Total words collected: {len(all_words)}")
     print(f"Full text: '{transcription_data['full_text']}'")
 
     if not all_words:
@@ -92,8 +90,6 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
         first_word_time = all_words[0].start_time.total_seconds()
         last_word_time = all_words[-1].end_time.total_seconds()
 
-        print(f"Combined text: '{combined_text}'")
-        print(f"Time range: {first_word_time:.2f}s - {last_word_time:.2f}s")
 
         transcription_data["speakers"][user_speaker_tag].append({
             "text": combined_text.strip(),

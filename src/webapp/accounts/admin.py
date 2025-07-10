@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User  # 自作のカスタムユーザーモデルをインポート
+from .models import User, UserTopicScore  # 自作のカスタムユーザーモデルをインポート
 
 # Djangoの標準になっているユーザー管理画面をカスタムユーザーモデルに合わせて調節したい
 
@@ -26,3 +26,14 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('account_id', 'email', 'password1', 'password2', 'is_staff', 'is_active')}
         ),
     )
+
+@admin.register(UserTopicScore)
+class UserTopicScoreAdmin(admin.ModelAdmin):
+    list_display = ['user', 'topic_label', 'score', 'count', 'updated_at']
+    list_filter = ['topic_label', 'updated_at']
+    search_fields = ['user__account_id', 'user__email', 'topic_label']
+    readonly_fields = ['created_at', 'updated_at']
+    ordering = ['user', 'topic_label']
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')

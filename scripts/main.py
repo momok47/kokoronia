@@ -7,12 +7,76 @@ from dotenv import load_dotenv
 # プロジェクトルートをPYTHONPATHに追加
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# Django設定の初期化
+django_project_root = os.path.join(os.path.dirname(__file__), '..', 'src', 'webapp')
+sys.path.insert(0, django_project_root)
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
+
+import django
+django.setup()
+
+# Django初期化後にモデルをインポート
+from accounts.models import User
+
 # .envファイルを読み込み
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 from src.core.audio.device2_audio_recorder import record_dual_audio
 from src.core.gcs.gcs_uploader import upload_to_gcs
 from src.core.gcs.transcribe_audio_from_gcs import transcribe_gcs
 from src.core.analysis.interests_extraction import analyze_transcription
+
+
+def validate_user_account(account_id):
+    """
+    アカウントIDが存在するかチェック
+    
+    Args:
+        account_id (str): チェックするアカウントID
+    
+    Returns:
+        tuple: (exists: bool, user: User or None, message: str)
+    """
+    try:
+        user = User.objects.get(account_id=account_id)
+        return True, user, f"ユーザー '{account_id}' を確認しました"
+    except User.DoesNotExist:
+        return False, None, f"アカウントID '{account_id}' のユーザーが見つかりません"
+    except Exception as e:
+        return False, None, f"エラーが発生しました: {str(e)}"
+
+
+def get_valid_account_id(device_name):
+    """
+    有効なアカウントIDを取得（再入力機能付き）
+    
+    Args:
+        device_name (str): デバイス名（表示用）
+    
+    Returns:
+        str: 有効なアカウントID
+    """
+    while True:
+        account_id = input(f"{device_name}を使う人のアカウントIDを入力してください: ").strip()
+        
+        if not account_id:
+            print("有効なアカウントIDを入力してください。")
+            continue
+        
+        exists, user, message = validate_user_account(account_id)
+        print(message)
+        
+        if exists:
+            print(f"{user.last_name}{user.first_name}さん　ようこそ！")
+            return account_id
+        else:
+            print("\n登録済みユーザーか確認してください")
+            
+            retry = input("\n再入力しますか？ (y/n): ").strip().lower()
+            if retry in ['n', 'no', 'いいえ']:
+                print("アプリケーションを終了します。")
+                exit()
+            print("─" * 50)
+
 
 def main():
     # GCSの設定
@@ -46,20 +110,29 @@ def main():
 
         try:
             device_a_index = int(input("\nデバイス1台目のデバイスIDは？: "))
-            speaker_tag_a = input("このデバイスを使う人のアカウントIDを入力してください: ")
+            if device_a_index not in input_devices:
+                print("エラー: 入力されたデバイスIDが無効です。")
+                exit()
+            
+            speaker_tag_a = get_valid_account_id("デバイス1台目")
 
             device_b_index = int(input("\nデバイス2台目のデバイスIDは？: "))
-            speaker_tag_b = input("このデバイスを使う人のアカウントIDを入力してください: ")
-
-            if device_a_index not in input_devices or device_b_index not in input_devices:
-                print("エラー: 入力されたデバイスIDが無効です。リストから存在するIDを選択してください。")
+            if device_b_index not in input_devices:
+                print("エラー: 入力されたデバイスIDが無効です。")
                 exit()
             elif device_a_index == device_b_index:
                 print("エラー: 同じデバイスを2回選択することはできません。")
                 exit()
+            
+            speaker_tag_b = get_valid_account_id("デバイス2台目")
+            
         except ValueError:
             print("エラー: 無効な入力です。数値でデバイスIDを入力してください。")
             exit()
+
+        print(f"\n^-^ 録音準備完了 ^-^")
+        print(f"   デバイス1: {speaker_tag_a}")
+        print(f"   デバイス2: {speaker_tag_b}")
 
         # 会話の録音
         wav_data_a, filename_a, wav_data_b, filename_b = record_dual_audio(device_a_index, device_b_index)
