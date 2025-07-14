@@ -7,7 +7,16 @@ from transformers import pipeline
 import torch
 
 class ZeroShotLearning:
-    def __init__(self, model_name="facebook/bart-large-mnli", mecab_dic_path=None):
+    def __init__(self, model_name="facebook/bart-large-mnli", unidic_path=None):
+        # モデルタイプの判定
+        if "japanese" in model_name or "tohoku" in model_name:
+            self.model_type = "japanese"
+        elif "mDeBERTa" in model_name or "xlm" in model_name or "multilingual" in model_name:
+            self.model_type = "multilingual"
+        else:
+            self.model_type = "english"
+        
+        # パイプラインの初期化
         self.classifier = pipeline(
             'zero-shot-classification',
             model=model_name,
@@ -15,13 +24,44 @@ class ZeroShotLearning:
             device=0 if torch.cuda.is_available() else -1
         )
         
-        if mecab_dic_path:
-            self.tagger = MeCab.Tagger(f'-d {mecab_dic_path} -r /dev/null')
+        # 後方互換性のために
+        self.is_japanese_model = (self.model_type == "japanese")
+        
+        # MeCabの初期化（必要な場合のみ）
+        self.tagger = None
+        if unidic_path:
+            try:
+                self.tagger = MeCab.Tagger(f'-d {unidic_path} -r /dev/null')
+            except RuntimeError:
+                print("警告: UniDic辞書パスが見つかりません。MeCab機能は無効化されます。")
+        elif unidic_path is None:
+            # unidic_path=Noneの場合、MeCabを初期化しない
+            pass
         else:
-            self.tagger = MeCab.Tagger()
+            try:
+                self.tagger = MeCab.Tagger()
+            except RuntimeError:
+                print("警告: MeCabの初期化に失敗しました。MeCab機能は無効化されます。")
         
     def classify_text(self, text, candidate_labels):
-        result = self.classifier(text, candidate_labels)
+        # モデルタイプに応じてhypothesis_templateを選択
+        if self.model_type == "japanese":
+            # 日本語モデルの場合
+            result = self.classifier(text, candidate_labels)
+        elif self.model_type == "multilingual":
+            # 多言語モデルの場合は日本語テンプレートを使用
+            result = self.classifier(
+                text, 
+                candidate_labels,
+                hypothesis_template="このテキストは{}について述べています"
+            )
+        else:
+            # 英語モデルの場合は英語テンプレートを使用
+            result = self.classifier(
+                text, 
+                candidate_labels,
+                hypothesis_template="This text is about {}"
+            )
         return result
         
     def extract_insights(self, conversation_data, topic_labels, display_speaker_label=None):
@@ -38,11 +78,26 @@ class ZeroShotLearning:
             speaker_texts[speaker].append(text)
             
             # 個別の発話を分類
-            result = self.classifier(
-                text,
-                candidate_labels=topic_labels,
-                hypothesis_template="このテキストは{}に関する会話である"
-            )
+            if self.model_type == "japanese":
+                result = self.classifier(
+                    text,
+                    candidate_labels=topic_labels,
+                    hypothesis_template="このテキストは{}に関する会話である"
+                )
+            elif self.model_type == "multilingual":
+                # 多言語モデルの場合は日本語テンプレートを使用
+                result = self.classifier(
+                    text,
+                    candidate_labels=topic_labels,
+                    hypothesis_template="このテキストは{}に関する会話である"
+                )
+            else:
+                # 英語モデルの場合は英語テンプレートを使用
+                result = self.classifier(
+                    text,
+                    candidate_labels=topic_labels,
+                    hypothesis_template="This text is about {}"
+                )
             all_results.append((speaker, result))
         
         # 結果の集計
@@ -91,12 +146,12 @@ class ZeroShotLearning:
             best_topic = "不明"
             best_score = 0.0
         
-        """
-        # ラベルごとの予測値を表示
+        # ラベルごとの予測値を表示（デバッグ用）
         sorted_topic_scores = sorted(avg_topic_scores.items(), key=lambda x: x[1], reverse=True)
-        for i, (label, score) in enumerate(sorted_topic_scores):
-            print(f"{i+1}: [{label}, [{score:.4f}]]")
-        """
+        model_type_display = {"japanese": "日本語", "multilingual": "多言語", "english": "英語"}
+        print(f"=== スコア分布 (モデル: {model_type_display.get(self.model_type, self.model_type)}) ===")
+        for i, (label, score) in enumerate(sorted_topic_scores[:5]):  # トップ5のみ表示
+            print(f"{i+1}: {label} -> {score:.4f}")
         
         return {
             "best_topic": best_topic,

@@ -6,6 +6,10 @@ import sys
 import os
 import argparse
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from accounts.models import User, UserTopicScore  # type: ignore
 
 # 相対インポートのためのパス設定
 sys.path.append(os.path.dirname(__file__))
@@ -21,11 +25,25 @@ if not hasattr(sys, '_django_setup_done'):
     sys._django_setup_done = True
 
 from user_matching import UserMatcher, create_mock_data
-from accounts.models import User, UserTopicScore
+
+# Django関連のインポート（setup後に実行）
+User = None
+UserTopicScore = None
+DJANGO_AVAILABLE = False
+
+try:
+    from accounts.models import User, UserTopicScore  # type: ignore
+    DJANGO_AVAILABLE = True
+except ImportError:
+    DJANGO_AVAILABLE = False
+    print("エラー: Django環境が利用できません。")
+    print("このスクリプトはDjango環境が必要です。")
+    sys.exit(1)
 
 
 def display_user_stats():
     """ユーザー統計を表示"""
+    assert User is not None and UserTopicScore is not None, "Django環境が必要です"
     print("=== ユーザー統計 ===")
     
     total_users = User.objects.count()
@@ -46,16 +64,18 @@ def display_user_stats():
                 topic_label=topic, 
                 score__gt=0
             ).count()
-            avg_score = UserTopicScore.objects.filter(
+            scores = UserTopicScore.objects.filter(
                 topic_label=topic,
                 score__gt=0
-            ).aggregate(avg_score=models.Avg('score'))['avg_score'] or 0
+            ).values_list('score', flat=True)
+            avg_score = sum(scores) / len(scores) if scores else 0
             
             print(f"  {topic:12s}: {count:3d}人 (平均スコア: {avg_score:.3f})")
 
 
 def display_detailed_user_info(min_score: float = 0.01):
     """詳細なユーザー情報を表示"""
+    assert User is not None and UserTopicScore is not None, "Django環境が必要です"
     print(f"\n=== 詳細ユーザー情報（最小スコア: {min_score}）===")
     
     users_with_scores = User.objects.filter(
@@ -82,6 +102,7 @@ def display_detailed_user_info(min_score: float = 0.01):
 
 def run_interactive_matching():
     """対話型マッチング実行"""
+    assert User is not None and UserTopicScore is not None, "Django環境が必要です"
     print("\n=== 対話型マッチング ===")
     
     # パラメータ設定
@@ -163,7 +184,7 @@ def main():
     args = parser.parse_args()
     
     # Django環境でない場合の処理
-    if not UserTopicScore:
+    if not DJANGO_AVAILABLE:
         print("エラー: Django環境が利用できません。")
         if args.mock:
             print("モックデータテストを実行します...")

@@ -21,7 +21,7 @@ if not hasattr(sys, '_django_setup_done'):
 
 # Django関連のインポート（setup後に実行）
 try:
-    from accounts.utils import save_user_insights, print_user_topic_summary
+    from accounts.utils import save_user_insights, print_user_topic_summary # type: ignore
     DJANGO_AVAILABLE = True
 except ImportError:
     DJANGO_AVAILABLE = False
@@ -53,15 +53,37 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         content = get_transcription_content(transcription_blob_name)
 
         print("\n=== 関心度分析を開始します ===")
-        model_name = "cl-tohoku/bert-base-japanese-whole-word-masking" 
-        topic_labels = ["社会", "まなび", "テクノロジー", "カルチャー", "アウトドア", "フード", "旅行おでかけ",
-                         "ライフスタイル", "ビジネス", "読書", "キャリア", "デザイン", "IT", "経済投資","ネットワーク"]
-        mecab_dic_path = os.getenv("MECAB_DIC_PATH", '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302')
+        
+        # 日本語モデルを試す場合（コメントアウト）
+        # model_name = "cl-tohoku/bert-base-japanese-whole-word-masking"
+        
+        # 多言語モデルを使用（日本語テキストに最適化）
+        model_name = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+        
+        # 改善されたラベル（高スコア獲得のため6個に削減）
+        japanese_labels = ["社会", "まなび", "テクノロジー", "カルチャー", "アウトドア", "フード", 
+                          "旅行おでかけ", "ライフスタイル", "ビジネス", "読書", "キャリア", 
+                          "デザイン", "IT", "経済投資", "ネットワーク"]
+        
+        english_labels = ["society", "learning", "technology", "culture", "outdoor", "food", 
+                         "travel", "lifestyle", "business", "reading", "career", 
+                         "design", "IT", "economics", "network"]
+        
+        # ラベルマッピング辞書
+        label_mapping = dict(zip(english_labels, japanese_labels))
+        
+        # 使用するラベルを決定
+        if "japanese" in model_name or "tohoku" in model_name:
+            topic_labels = japanese_labels
+        else:
+            topic_labels = english_labels
+        
+        unidic_path = os.getenv("UNIDIC_PATH", '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302')
         
         # ZeroShotLearningクラスの初期化（新しいAPI）
         topic_analyzer = ZeroShotLearning(
             model_name=model_name,
-            mecab_dic_path=mecab_dic_path
+            unidic_path=unidic_path
         )
         
         # 会話データの準備（full_textとconversationの両方に対応）
@@ -73,6 +95,19 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
             topic_labels=topic_labels,
             display_speaker_label=speaker_tag_override
         )
+        
+        # 結果を日本語ラベルに変換（英語モデルを使用した場合）
+        if not ("japanese" in model_name or "tohoku" in model_name):
+            # 英語ラベルを日本語に変換
+            if insights['best_topic'] in label_mapping:
+                insights['best_topic'] = label_mapping[insights['best_topic']]
+            
+            # topic_scoresも変換
+            converted_topic_scores = {}
+            for eng_label, score in insights['topic_scores'].items():
+                jp_label = label_mapping.get(eng_label, eng_label)
+                converted_topic_scores[jp_label] = score
+            insights['topic_scores'] = converted_topic_scores
         
         print("\n=== 分析結果 ===")
         print(f"検出されたトピック: {insights['best_topic']}")
