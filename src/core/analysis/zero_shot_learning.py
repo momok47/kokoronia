@@ -21,7 +21,6 @@ class ZeroShotLearning:
             self.tagger = MeCab.Tagger()
         
     def classify_text(self, text, candidate_labels):
-        '''テキストをゼロショット分類'''
         result = self.classifier(text, candidate_labels)
         return result
         
