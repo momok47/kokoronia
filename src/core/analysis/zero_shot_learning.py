@@ -149,7 +149,7 @@ class ZeroShotLearning:
         # ラベルごとの予測値を表示（デバッグ用）
         sorted_topic_scores = sorted(avg_topic_scores.items(), key=lambda x: x[1], reverse=True)
         model_type_display = {"japanese": "日本語", "multilingual": "多言語", "english": "英語"}
-        print(f"=== スコア分布 (モデル: {model_type_display.get(self.model_type, self.model_type)}) ===")
+        print(f"=== スコア分布 ===")
         for i, (label, score) in enumerate(sorted_topic_scores[:5]):  # トップ5のみ表示
             print(f"{i+1}: {label} -> {score:.4f}")
         
