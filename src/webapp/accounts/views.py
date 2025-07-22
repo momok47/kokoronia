@@ -60,7 +60,7 @@ class LogoutView(BaseLogoutView):
 
 
 class RecordingSessionView(LoginRequiredMixin, TemplateView):
-    """ 音声録音セッション用ビュー """
+    """ 用ビュー """
     template_name = "accounts/recording_session.html"
     login_url = "accounts:login"
 
