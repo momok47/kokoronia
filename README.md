@@ -92,14 +92,24 @@ lounge/
 
 ## 🚀 使い方
 
-1. サーバーを起動
+1. リポジトリをクローンし、セットアップ
+
+```bash
+git clone https://github.com/momok47/lounge.git
+cd lounge
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e .
+```
+
+2. サーバーを起動
 
 ```bash
 cd src/webapp
 python manage.py runserver
 ```
 
-2. Webブラウザでアクセス
+3. Webブラウザでアクセス
 
 - アプリ本体: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 - 管理画面: [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
