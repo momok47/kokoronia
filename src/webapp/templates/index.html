@@ -1,52 +1,146 @@
 {% extends 'base.html' %}
 
-{% block title %}
-{% if user.is_authenticated %}
-マイページ
-{% else %}
-メインページ
-{% endif %}
-{% endblock %}
+{% block title %}KOKORONIA - コミュニケーション分析プラットフォーム{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container-fluid mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            {% if user.is_authenticated %}
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">ようこそ {{ user.first_name }} {{ user.last_name }} さん</h2>
-                    
-                    <div class="d-grid gap-3 mb-4">
-                        <a href="{% url 'accounts:recording' %}" class="btn btn-lg" style="background-color: #BFD8C2; color: #664B4F;">
-                            <i class="fas fa-microphone"></i> 会話をスタート！
-                        </a>
+        <!-- メインコンテンツ -->
+        <div class="col-12">
+            <!-- KOKORONIAヘッダーセクション -->
+            <div class="hero-section text-center py-5 mb-5" 
+                 style="background: linear-gradient(135deg, #eefcb4 0%, #b4ede8 100%); border-radius: 15px; color: #3e2723;">
+                <h1 class="display-4 fw-bold mb-4" style="color: #3e2723;">
+                    <i class="fas fa-seedling"></i> KOKORONIA <i class="fas fa-seedling"></i>
+                </h1>
+                <h2 class="mb-3 fw-bold" style="color: #3e2723; font-size: 1.5rem;">
+                    - 何気ない会話からあなたの好きを知る -
+                </h2>
+                <p class="lead mb-4" style="color: #3e2723;">
+                    音声会話の分析を通じて、あなたの興味関心を理解し、最適なマッチングを提供します。
+                </p>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'accounts:recording' %}" class="btn btn-custom-dark-green btn-lg">
+                        <i class="fas fa-microphone"></i> 会話を始める
+                    </a>
+                {% else %}
+                    <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-user-plus"></i> 新規登録
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-success btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> ログイン
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- 機能紹介セクション -->
+            <div class="row mb-5">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-heart fa-3x text-light-pink mb-3"></i>
+                            <h5 class="card-title fw-bold">あの人の好きを知る</h5>
+                            <p class="card-text">意外な一面を見つけて、より親密な関係に</p>
+                        </div>
                     </div>
-                    
-                    <form method="post" action="{% url 'accounts:logout' %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-lg" style="background-color: #AFC5D9; color: #664B4F;">
-                            <i class="fas fa-sign-out-alt"></i> ログアウト
-                        </button>
-                    </form>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-handshake fa-3x text-light-blue mb-3"></i>
+                            <h5 class="card-title fw-bold">新しい出会いをもっと深める</h5>
+                            <p class="card-text">最適な話題を提案し、自然な会話で関係を深める</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-star fa-3x text-light-yellow mb-3"></i>
+                            <h5 class="card-title fw-bold">話し方をサポート</h5>
+                            <p class="card-text">話し方を分析しより魅力的な会話に</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            {% else %}
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">さあ、会話をはじめましょう</h2>
-                    <div class="d-grid gap-3">
-                        <a href="{% url 'accounts:signup' %}" class="btn btn-lg" style="background-color: #BFD8C2; color: #664B4F;">
-                            <i class="fas fa-user-plus"></i> 新規登録
-                        </a>
-                        <a href="{% url 'accounts:login' %}" class="btn btn-lg" style="background-color: #AFC5D9; color: #664B4F;">
-                            <i class="fas fa-sign-in-alt"></i> ログイン
-                        </a>
+
+            <!-- システム情報セクション -->
+            <div class="row justify-content-center mb-5">
+                <div class="col-md-6">
+                    <!-- システム情報カード -->
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h6><i class="fas fa-cog"></i> システム情報</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small mb-1"><strong>バージョン:</strong> v1.0.0</p>
+                            <p class="small mb-1"><strong>利用技術:</strong> Django, PyAudio, Google Cloud</p>
+                            <p class="small mb-0"><strong>対応言語:</strong> 日本語</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+/* カスタムカラークラス */
+.text-light-pink {
+    color: #ffb3d1 !important; /* 薄ピンク */
+}
+
+.text-light-blue {
+    color: #87ceeb !important; /* 薄水色 */
+}
+
+.text-light-yellow {
+    color: #ffe066 !important; /* 薄い黄色 */
+}
+
+/* カスタム深緑ボタン */
+.btn-custom-dark-green {
+    background-color: #2d5a27 !important;
+    border-color: #2d5a27 !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.btn-custom-dark-green:hover {
+    background-color: #40916c !important;
+    border-color: #40916c !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(45, 90, 39, 0.4);
+}
+
+.btn-custom-dark-green:focus,
+.btn-custom-dark-green:active {
+    background-color: #1b4332 !important;
+    border-color: #1b4332 !important;
+    color: white !important;
+    box-shadow: 0 0 0 0.2rem rgba(45, 90, 39, 0.25);
+}
+
+/* Hero section styling */
+.hero-section {
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.alert-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+}
+</style>
 {% endblock %}

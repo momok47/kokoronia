@@ -60,6 +60,11 @@ class UserValidator:
         Returns:
             str: 有効なアカウントID
         """
+        # 自動モードの場合はスキップ
+        auto_mode = os.getenv('KOKORONIA_AUTO_MODE', '').lower() == 'true'
+        if auto_mode:
+            return ""  # 自動モードでは呼び出されない想定
+            
         while True:
             account_id = input(f"{device_name}を使う人のアカウントIDを入力してください: ").strip()
             
@@ -88,6 +93,7 @@ class DeviceManager:
     
     def __init__(self):
         self.input_devices: List[int] = []
+        self.auto_mode = os.getenv('KOKORONIA_AUTO_MODE', '').lower() == 'true'
         
     def discover_audio_devices(self) -> List[int]:
         """利用可能な音声入力デバイスを検出"""
@@ -96,12 +102,14 @@ class DeviceManager:
             info = p.get_host_api_info_by_index(0)
             num_devices = info.get('deviceCount')
             
-            print("\n--- 利用可能な録音デバイス ---")
+            if not self.auto_mode:
+                print("\n--- 利用可能な録音デバイス ---")
             input_devices = []
             for i in range(0, num_devices):
                 if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
                     device_name = p.get_device_info_by_host_api_device_index(0, i).get('name')
-                    print(f"デバイスID: {i} - {device_name}")
+                    if not self.auto_mode:
+                        print(f"デバイスID: {i} - {device_name}")
                     input_devices.append(i)
             
             self.input_devices = input_devices
@@ -115,17 +123,48 @@ class DeviceManager:
             already_selected = []
             
         if device_index not in self.input_devices:
-            print("エラー: 入力されたデバイスIDが無効です。")
+            if not self.auto_mode:
+                print("エラー: 入力されたデバイスIDが無効です。")
             return False
         
         if device_index in already_selected:
-            print("エラー: 同じデバイスを2回選択することはできません。")
+            if not self.auto_mode:
+                print("エラー: 同じデバイスを2回選択することはできません。")
             return False
         
         return True
     
     def get_device_selection(self) -> Tuple[int, str, int, str]:
         """デバイス選択とユーザー認証を実行"""
+        
+        # 自動モード（Web経由）の場合
+        if self.auto_mode:
+            device_a_index = int(os.getenv('KOKORONIA_AUTO_DEVICE_A'))
+            speaker_tag_a = os.getenv('KOKORONIA_AUTO_SPEAKER_A')
+            device_b_index = int(os.getenv('KOKORONIA_AUTO_DEVICE_B'))
+            speaker_tag_b = os.getenv('KOKORONIA_AUTO_SPEAKER_B')
+            
+            print(f"自動モード: デバイス{device_a_index}({speaker_tag_a}) & デバイス{device_b_index}({speaker_tag_b})")
+            
+            # 有効性チェック
+            if not self.validate_device_selection(device_a_index):
+                raise ValueError(f"無効なデバイスID: {device_a_index}")
+            if not self.validate_device_selection(device_b_index, [device_a_index]):
+                raise ValueError(f"無効なデバイスID: {device_b_index}")
+            
+            # ユーザー存在チェック
+            exists_a, _, msg_a = UserValidator.validate_user_account(speaker_tag_a)
+            exists_b, _, msg_b = UserValidator.validate_user_account(speaker_tag_b)
+            
+            if not exists_a:
+                raise ValueError(f"ユーザーが見つかりません: {speaker_tag_a}")
+            if not exists_b:
+                raise ValueError(f"ユーザーが見つかりません: {speaker_tag_b}")
+                
+            print(f"ユーザー確認完了: {speaker_tag_a}, {speaker_tag_b}")
+            return device_a_index, speaker_tag_a, device_b_index, speaker_tag_b
+        
+        # 対話モード（通常実行）の場合
         # デバイス1台目
         while True:
             try:

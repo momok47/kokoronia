@@ -62,10 +62,10 @@ def record_dual_audio(device_index_a, device_index_b):
             stream_finished_event.set() # このスレッドの処理が終了したことを通知
 
     def manage_recording(rec_event):
-        input("\nEnterを押して会話を開始してね^-^")
+        input("\n^-^Enterを押して会話を開始^-^")
         rec_event.set()  # 2端末録音開始イベントを設定
         
-        input("録音中だよ，会話が終わったらEnterを押してね^-^")
+        input("\n録音中だよ，会話が終わったらEnterを押してね^-^")
         rec_event.clear() # 2端末録音停止イベントを設定
     
     # 各デバイスの録音スレッドを開始

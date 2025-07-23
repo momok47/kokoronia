@@ -9,10 +9,10 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="text-center">
-                        <i class="fas fa-microphone"></i> 音声録音セッション
+                        <i class="fas fa-microphone"></i> 会話を始める
                     </h3>
                     <p class="text-center text-muted mb-0">
-                        ようこそ {{ user.first_name }} {{ user.last_name }} さん
+                        {{ user.last_name }} {{ user.first_name }} さん
                     </p>
                 </div>
                 <div class="card-body">
@@ -21,113 +21,202 @@
                             <i class="fas fa-cog"></i> 録音設定
                         </h4>
                         
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            会話相手のアカウントIDを入力してセッションを開始してください
-                        </div>
-                        
-                        <form id="setup-form">
+                        <form method="post" action="{% url 'accounts:run_main_script' %}" id="setup-form">
                             {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="participant2" class="form-label">
-                                    会話相手のアカウントID
-                                </label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="participant2" 
-                                       name="participant2"
-                                       placeholder="相手のアカウントIDを入力"
-                                       required>
-                                <div class="form-text">
-                                    登録済みのユーザーのアカウントIDを入力してください
+                            
+                            <!-- マイクデバイス選択セクション -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-microphone-alt"></i> マイクデバイス選択</h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary float-end" id="refresh-microphones">
+                                        <i class="fas fa-sync"></i> 更新
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="microphones-loading" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> マイクデバイスを検出中...
+                                    </div>
+                                    
+                                    <div id="microphones-list" style="display: none;">
+                                        <!-- マイク一覧がここに表示される -->
+                                    </div>
+                                    
+                                    <div id="microphones-error" class="alert alert-warning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span id="microphones-error-message">マイクデバイスの取得に失敗しました。</span>
+                                        <br><small>ブラウザでマイクへのアクセスを許可してください。</small>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label for="session-name" class="form-label">
-                                    セッション名 (オプション)
-                                </label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="session-name" 
-                                       name="session_name"
-                                       placeholder="例: 今日の雑談">
+                            <!-- 選択されたマイクデバイス -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-microphone"></i> 使用するマイク（2台選択）</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="microphone_device_a" class="form-label">
+                                                    <i class="fas fa-microphone text-primary"></i> マイクデバイス1
+                                                </label>
+                                                <select class="form-select" id="microphone_device_a" name="microphone_device_a" required>
+                                                    <option value="">マイク1を選択してください</option>
+                                                </select>
+                                                <div class="form-text">
+                                                    録音者（あなた）が使用するマイク
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="microphone_device_b" class="form-label">
+                                                    <i class="fas fa-microphone text-success"></i> マイクデバイス2
+                                                </label>
+                                                <select class="form-select" id="microphone_device_b" name="microphone_device_b" required>
+                                                    <option value="">マイク2を選択してください</option>
+                                                </select>
+                                                <div class="form-text">
+                                                    会話相手が使用するマイク
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="custom-mic-warning mb-3">
+                                        <small class="custom-mic-warning-text">
+                                            <i class="fas fa-exclamation-triangle"></i> 
+                                            異なるマイクデバイスを選択してください。同じデバイスは選択できません。
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                                                        
+                            <!-- 録音者情報 -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-microphone"></i> 録音者（あなた）</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="speaker_tag_a" class="form-label">
+                                            あなたのアカウントID
+                                        </label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="speaker_tag_a" 
+                                               name="speaker_tag_a"
+                                               value="{{ user.account_id }}"
+                                               readonly>
+                                        <div class="form-text">
+                                            録音者のアカウントID（変更不可）
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
+                            <!-- 会話相手情報 -->
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-user"></i> 会話相手</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="speaker_tag_b" class="form-label">
+                                            会話相手のアカウントID
+                                        </label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="speaker_tag_b" 
+                                               name="speaker_tag_b"
+                                               placeholder="会話相手のアカウントIDを入力"
+                                               required>
+                                        <div class="form-text">
+                                            この会話に参加する相手のアカウントIDを入力してください
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 隠しフィールド（従来のデバイスIDに対応するため） -->
+                            <input type="hidden" id="device_a_index" name="device_a_index" value="0">
+                            <input type="hidden" id="device_b_index" name="device_b_index" value="1">
+                            
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-play"></i> 録音セッション開始
+                                <button type="button" class="btn btn-success btn-lg" id="start-recording-btn">
+                                    <i class="fas fa-play"></i> 録音を開始
                                 </button>
                             </div>
                         </form>
                     </div>
                     
+                    <!-- 録音中の表示 -->
                     <div id="recording-active" class="recording-phase" style="display: none;">
                         <h4 class="mb-3 text-center">
-                            <i class="fas fa-record-vinyl text-danger"></i> 録音中...
+                            <i class="fas fa-record-vinyl text-danger animate-pulse"></i> 録音中...
                         </h4>
                         
                         <div class="text-center mb-4">
                             <div class="recording-indicator">
-                                <div class="pulse-animation"></div>
+                                <div class="pulse-red"></div>
+                                <div class="pulse-red pulse-delay-1"></div>
+                                <div class="pulse-red pulse-delay-2"></div>
                             </div>
-                            <p class="mt-3">会話を開始してください</p>
+                            <p class="mt-3"><strong>会話を開始してください</strong></p>
                             <p class="text-muted">録音を停止するには下のボタンを押してください</p>
-                            <p class="small">録音時間: <span id="recording-time">0:00</span></p>
+                            <p class="small">録音時間: <span id="recording-time" class="text-primary font-weight-bold">0:00</span></p>
                         </div>
                         
-                        <div class="row">
+                        <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>参加者1</h6>
-                                        <strong>{{ user.account_id }}</strong>
-                                        <br>{{ user.first_name }} {{ user.last_name }}
+                                        <h6><i class="fas fa-microphone text-primary"></i> 録音者（マイク1）</h6>
+                                        <strong id="speaker-a-display">{{ user.account_id }}</strong>
+                                        <br><small class="text-muted">あなた</small>
+                                        <br><small id="microphone-display-a" class="text-info">マイク1: デフォルト</small>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="card bg-light">
                                     <div class="card-body text-center">
-                                        <h6>参加者2</h6>
-                                        <strong id="participant2-display"></strong>
+                                        <h6><i class="fas fa-microphone text-success"></i> 会話相手（マイク2）</h6>
+                                        <strong id="speaker-b-display">相手未設定</strong>
+                                        <br><small class="text-muted">会話参加者</small>
+                                        <br><small id="microphone-display-b" class="text-info">マイク2: デフォルト</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="d-grid mt-4">
-                            <button type="button" 
-                                    class="btn btn-danger btn-lg" 
-                                    id="stop-recording">
-                                <i class="fas fa-stop"></i> 録音停止
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-danger btn-lg" id="stop-recording-btn">
+                                <i class="fas fa-stop"></i> 録音を停止
                             </button>
                         </div>
                     </div>
                     
-                    <div id="recording-processing" class="recording-phase text-center" style="display: none;">
+                    <!-- main.py実行結果の表示 -->
+                    <div id="script-results" class="recording-phase" style="display: none;">
                         <h4 class="mb-3">
-                            <i class="fas fa-spinner fa-spin"></i> 処理中...
+                            <i class="fas fa-terminal"></i> 実行結果
                         </h4>
-                        <p>音声を分析しています。しばらくお待ちください。</p>
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                 role="progressbar" 
-                                 style="width: 100%"></div>
-                        </div>
-                        <p class="mt-2 small text-muted" id="processing-status">音声をアップロード中...</p>
-                    </div>
-                    
-                    <div id="recording-complete" class="recording-phase" style="display: none;">
-                        <h4 class="mb-3 text-success">
-                            <i class="fas fa-check-circle"></i> 完了！
-                        </h4>
-                        <div class="alert alert-success">
-                            <p class="mb-2">音声の分析が完了しました。</p>
-                            <div id="analysis-results"></div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6><i class="fas fa-desktop"></i> ターミナル出力</h6>
+                            </div>
+                            <div class="card-body">
+                                <pre id="terminal-output" class="bg-dark text-light p-3" style="max-height: 400px; overflow-y: auto; font-size: 0.85em;"></pre>
+                            </div>
                         </div>
                         
-                        <div class="d-grid gap-2">
+                        <div class="row mt-3" id="execution-status">
+                            <!-- 実行結果のステータスがここに表示される -->
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-3">
                             <button type="button" 
                                     class="btn btn-primary" 
                                     id="new-session">
@@ -139,12 +228,14 @@
                         </div>
                     </div>
                     
-                    <div id="recording-error" class="recording-phase" style="display: none;">
+                    <!-- エラー表示 -->
+                    <div id="script-error" class="recording-phase" style="display: none;">
                         <h4 class="mb-3 text-danger">
                             <i class="fas fa-exclamation-triangle"></i> エラーが発生しました
                         </h4>
                         <div class="alert alert-danger">
-                            <p id="error-message">不明なエラーが発生しました。</p>
+                            <p id="error-message">main.pyの実行中にエラーが発生しました。</p>
+                            <pre id="error-output" class="bg-dark text-light p-2 mt-2" style="font-size: 0.85em;"></pre>
                         </div>
                         
                         <div class="d-grid gap-2">
@@ -166,332 +257,860 @@
 
 <style>
 .recording-indicator {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.pulse-red {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
     background-color: #dc3545;
-    border-radius: 50%;
+    animation: pulse-recording 1.5s ease-in-out infinite;
 }
 
-.pulse-animation {
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
-    border: 3px solid #dc3545;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
+.pulse-delay-1 {
+    animation-delay: 0.3s;
 }
 
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
+.pulse-delay-2 {
+    animation-delay: 0.6s;
+}
+
+@keyframes pulse-recording {
+    0%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
     }
     50% {
-        transform: scale(1.1);
-        opacity: 0.7;
-    }
-    100% {
         transform: scale(1.2);
-        opacity: 0;
+        opacity: 1;
     }
+}
+
+.animate-pulse {
+    animation: flash-recording 2s ease-in-out infinite;
+}
+
+@keyframes flash-recording {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
 }
 
 .recording-phase {
     transition: all 0.3s ease;
 }
+
+#recording-time {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.custom-mic-warning {
+    background: #e3f2fd;
+    border-radius: 8px;
+    padding: 0.7em 1em;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    display: inline-block;
+}
+.custom-mic-warning-text {
+    color: #22577a;
+    font-weight: 600;
+    font-size: 1em;
+}
 </style>
 
 <script>
-class AudioRecordingSession {
-    constructor() {
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        this.isRecording = false;
-        this.recordingStartTime = null;
-        this.recordingTimer = null;
+document.addEventListener('DOMContentLoaded', function() {
+    // 録音制御システム
+    const RecordingController = {
+        // DOM要素
+        setupPhase: document.getElementById('recording-setup'),
+        activePhase: document.getElementById('recording-active'),
+        resultsPhase: document.getElementById('script-results'),
+        errorPhase: document.getElementById('script-error'),
         
-        this.initializeElements();
-        this.bindEvents();
-        this.checkBrowserSupport();
-    }
-    
-    initializeElements() {
-        this.setupForm = document.getElementById('setup-form');
-        this.setupPhase = document.getElementById('recording-setup');
-        this.activePhase = document.getElementById('recording-active');
-        this.processingPhase = document.getElementById('recording-processing');
-        this.completePhase = document.getElementById('recording-complete');
-        this.errorPhase = document.getElementById('recording-error');
+        startBtn: document.getElementById('start-recording-btn'),
+        stopBtn: document.getElementById('stop-recording-btn'),
         
-        this.stopRecordingBtn = document.getElementById('stop-recording');
-        this.newSessionBtn = document.getElementById('new-session');
-        this.retrySessionBtn = document.getElementById('retry-session');
+        deviceAInput: document.getElementById('device_a_index'),
+        speakerAInput: document.getElementById('speaker_tag_a'),
+        deviceBInput: document.getElementById('device_b_index'),
+        speakerBInput: document.getElementById('speaker_tag_b'),
         
-        this.participant2Input = document.getElementById('participant2');
-        this.sessionNameInput = document.getElementById('session-name');
-        this.participant2Display = document.getElementById('participant2-display');
-        this.recordingTimeDisplay = document.getElementById('recording-time');
-        this.processingStatusDisplay = document.getElementById('processing-status');
-        this.analysisResultsDisplay = document.getElementById('analysis-results');
-        this.errorMessageDisplay = document.getElementById('error-message');
-    }
-    
-    bindEvents() {
-        this.setupForm.addEventListener('submit', (e) => this.handleSetupSubmit(e));
-        this.stopRecordingBtn.addEventListener('click', () => this.stopRecording());
-        this.newSessionBtn.addEventListener('click', () => this.resetSession());
-        this.retrySessionBtn.addEventListener('click', () => this.resetSession());
-    }
-    
-    checkBrowserSupport() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            this.showError('お使いのブラウザは音声録音をサポートしていません。');
-            return false;
-        }
-        if (!window.MediaRecorder) {
-            this.showError('お使いのブラウザはMediaRecorderをサポートしていません。');
-            return false;
-        }
-        return true;
-    }
-    
-    async handleSetupSubmit(e) {
-        e.preventDefault();
+        deviceADisplay: document.getElementById('device-a-display'),
+        speakerADisplay: document.getElementById('speaker-a-display'),
+        deviceBDisplay: document.getElementById('device-b-display'),
+        speakerBDisplay: document.getElementById('speaker-b-display'),
         
-        const participant2 = this.participant2Input.value.trim();
-        if (!participant2) {
-            alert('会話相手のアカウントIDを入力してください');
-            return;
-        }
+        recordingTimeDisplay: document.getElementById('recording-time'),
         
-        // 参加者2の表示を更新
-        this.participant2Display.textContent = participant2;
+        // 録音状態
+        isRecording: false,
+        startTime: null,
+        timer: null,
         
-        try {
-            // マイクアクセス許可を取得
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            });
-            
-            this.startRecording(stream);
-        } catch (error) {
-            console.error('マイクアクセス取得エラー:', error);
-            this.showError('マイクへのアクセス許可が必要です。ブラウザの設定を確認してください。');
-        }
-    }
-    
-    startRecording(stream) {
-        try {
-            // MediaRecorderの設定
-            const options = {
-                mimeType: 'audio/webm;codecs=opus'
-            };
-            
-            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                options.mimeType = 'audio/webm';
-            }
-            
-            this.mediaRecorder = new MediaRecorder(stream, options);
-            this.audioChunks = [];
-            
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.audioChunks.push(event.data);
-                }
-            };
-            
-            this.mediaRecorder.onstop = () => {
-                stream.getTracks().forEach(track => track.stop());
-                this.processRecording();
-            };
-            
-            this.mediaRecorder.onerror = (event) => {
-                console.error('MediaRecorder エラー:', event.error);
-                this.showError('録音中にエラーが発生しました: ' + event.error);
-            };
-            
-            // 録音開始
-            this.mediaRecorder.start(1000); // 1秒ごとにデータを取得
-            this.isRecording = true;
-            this.recordingStartTime = Date.now();
-            
-            // UI切り替え
-            this.setupPhase.style.display = 'none';
-            this.activePhase.style.display = 'block';
-            
-            // タイマー開始
-            this.startRecordingTimer();
-            
-            console.log('録音を開始しました');
-        } catch (error) {
-            console.error('録音開始エラー:', error);
-            this.showError('録音の開始に失敗しました: ' + error.message);
-        }
-    }
-    
-    stopRecording() {
-        if (!this.isRecording || !this.mediaRecorder) return;
+        // Web録音関連
+        mediaRecorderA: null,
+        mediaRecorderB: null,
+        audioChunksA: [],
+        audioChunksB: [],
+        audioStreamA: null,
+        audioStreamB: null,
+        selectedMicrophoneAId: null,
+        selectedMicrophoneAName: 'デバイス1',
+        selectedMicrophoneBId: null,
+        selectedMicrophoneBName: 'デバイス2',
         
-        this.isRecording = false;
-        this.clearRecordingTimer();
-        
-        // 録音停止
-        this.mediaRecorder.stop();
-        
-        console.log('録音を停止しました');
-    }
-    
-    startRecordingTimer() {
-        this.recordingTimer = setInterval(() => {
-            if (!this.recordingStartTime) return;
-            
-            const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            
-            this.recordingTimeDisplay.textContent = 
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }, 1000);
-    }
-    
-    clearRecordingTimer() {
-        if (this.recordingTimer) {
-            clearInterval(this.recordingTimer);
-            this.recordingTimer = null;
-        }
-    }
-    
-    async processRecording() {
-        // 処理中フェーズに切り替え
-        this.activePhase.style.display = 'none';
-        this.processingPhase.style.display = 'block';
-        
-        try {
-            // 音声データをBlobに変換
-            const audioBlob = new Blob(this.audioChunks, { 
-                type: this.mediaRecorder.mimeType 
-            });
-            
-            console.log('録音データサイズ:', audioBlob.size, 'バイト');
-            
-            // サーバーにアップロード
-            await this.uploadAndProcessAudio(audioBlob);
-            
-        } catch (error) {
-            console.error('録音処理エラー:', error);
-            this.showError('録音データの処理中にエラーが発生しました: ' + error.message);
-        }
-    }
-    
-    async uploadAndProcessAudio(audioBlob) {
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
-        formData.append('participant1', '{{ user.account_id }}');
-        formData.append('participant2', this.participant2Input.value.trim());
-        formData.append('session_name', this.sessionNameInput.value.trim());
-        formData.append('csrfmiddlewaretoken', 
-                        document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
-        try {
-            this.processingStatusDisplay.textContent = '音声をアップロード中...';
-            
-            const response = await fetch('{% url "accounts:process_recording" %}', {
-                method: 'POST',
-                body: formData,
-            });
-            
-            if (!response.ok) {
-                throw new Error(`サーバーエラー: ${response.status} ${response.statusText}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                this.showComplete(result);
-            } else {
-                throw new Error(result.message || '処理に失敗しました');
-            }
-            
-        } catch (error) {
-            console.error('アップロードエラー:', error);
-            this.showError('サーバーへのアップロードに失敗しました: ' + error.message);
-        }
-    }
-    
-    showComplete(result) {
-        this.processingPhase.style.display = 'none';
-        this.completePhase.style.display = 'block';
-        
-        // 分析結果の表示
-        let resultsHTML = '<p><strong>分析結果:</strong></p>';
-        if (result.analysis) {
-            resultsHTML += `<p>検出されたトピック: <strong>${result.analysis.best_topic}</strong></p>`;
-            resultsHTML += `<p>信頼度: <strong>${(result.analysis.best_score * 100).toFixed(1)}%</strong></p>`;
-        } else {
-            resultsHTML += '<p>結果はあなたのプロフィールに反映されます。</p>';
-        }
-        
-        this.analysisResultsDisplay.innerHTML = resultsHTML;
-    }
-    
-    showError(message) {
-        // 全てのフェーズを非表示
-        this.setupPhase.style.display = 'none';
-        this.activePhase.style.display = 'none';
-        this.processingPhase.style.display = 'none';
-        this.completePhase.style.display = 'none';
-        
-        // エラーフェーズを表示
-        this.errorMessageDisplay.textContent = message;
-        this.errorPhase.style.display = 'block';
-        
-        // 録音を停止
-        this.cleanup();
-    }
-    
-    resetSession() {
-        this.cleanup();
-        
-        // UI リセット
-        this.errorPhase.style.display = 'none';
-        this.completePhase.style.display = 'none';
-        this.processingPhase.style.display = 'none';
-        this.activePhase.style.display = 'none';
-        this.setupPhase.style.display = 'block';
-        
-        // フォームクリア
-        this.setupForm.reset();
-        this.recordingTimeDisplay.textContent = '0:00';
-        this.analysisResultsDisplay.innerHTML = '';
-    }
-    
-    cleanup() {
-        // 録音の完全停止
-        this.isRecording = false;
-        this.clearRecordingTimer();
-        
-        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-            this.mediaRecorder.stop();
-        }
+        // 進行状況監視タイマー
+        progressTimer: null,
+        sessionId: null,
         
         // 初期化
-        this.mediaRecorder = null;
-        this.audioChunks = [];
-        this.recordingStartTime = null;
-    }
-}
-
-// ページ読み込み完了後に初期化
-document.addEventListener('DOMContentLoaded', function() {
-    new AudioRecordingSession();
+        init() {
+            this.bindEvents();
+        },
+        
+        // イベントバインド
+        bindEvents() {
+            if (this.startBtn) {
+                this.startBtn.addEventListener('click', () => this.startRecording());
+            }
+            
+            if (this.stopBtn) {
+                this.stopBtn.addEventListener('click', () => this.stopRecording());
+            }
+            
+            // 新しいセッションボタン
+            const newSessionBtn = document.getElementById('new-session');
+            if (newSessionBtn) {
+                newSessionBtn.addEventListener('click', () => location.reload());
+            }
+        },
+        
+        // 録音開始
+        async startRecording() {
+            try {
+                // 入力検証
+                const speakerA = this.speakerAInput.value.trim();
+                const speakerB = this.speakerBInput.value.trim();
+                const microphoneASelect = document.getElementById('microphone_device_a');
+                const microphoneBSelect = document.getElementById('microphone_device_b');
+                
+                if (!speakerA || !speakerB) {
+                    alert('会話相手のアカウントIDを入力してください。');
+                    return;
+                }
+                
+                if (speakerA === speakerB) {
+                    alert('自分自身を会話相手にすることはできません。');
+                    return;
+                }
+                
+                if (!microphoneASelect.value || !microphoneBSelect.value) {
+                    alert('2台のマイクデバイスを選択してください。');
+                    return;
+                }
+                
+                if (microphoneASelect.value === microphoneBSelect.value) {
+                    alert('異なるマイクデバイスを選択してください。');
+                    return;
+                }
+                
+                // Web音声録音の開始（2台同時）
+                await this.startDualWebRecording();
+                
+                // 表示を更新
+                this.speakerADisplay.textContent = speakerA;
+                this.speakerBDisplay.textContent = speakerB;
+                
+                // マイクデバイス名を表示
+                const microphoneDisplayA = document.getElementById('microphone-display-a');
+                const microphoneDisplayB = document.getElementById('microphone-display-b');
+                if (microphoneDisplayA) {
+                    microphoneDisplayA.textContent = `マイク1: ${this.selectedMicrophoneAName}`;
+                }
+                if (microphoneDisplayB) {
+                    microphoneDisplayB.textContent = `マイク2: ${this.selectedMicrophoneBName}`;
+                }
+                
+                // UIを録音中に切り替え
+                this.setupPhase.style.display = 'none';
+                this.activePhase.style.display = 'block';
+                
+                // 録音開始
+                this.isRecording = true;
+                this.startTime = Date.now();
+                this.startTimer();
+                
+            } catch (error) {
+                console.error('録音開始エラー:', error);
+                alert('録音開始中にエラーが発生しました: ' + error.message);
+                this.resetToSetup();
+            }
+        },
+        
+        // 2台同時Web録音開始
+        async startDualWebRecording() {
+            try {
+                // 選択されたマイクデバイスを取得
+                const microphoneASelect = document.getElementById('microphone_device_a');
+                const microphoneBSelect = document.getElementById('microphone_device_b');
+                
+                this.selectedMicrophoneAId = microphoneASelect.value;
+                this.selectedMicrophoneAName = microphoneASelect.options[microphoneASelect.selectedIndex].text;
+                this.selectedMicrophoneBId = microphoneBSelect.value;
+                this.selectedMicrophoneBName = microphoneBSelect.options[microphoneBSelect.selectedIndex].text;
+                
+                console.log(`マイク1: ${this.selectedMicrophoneAName} (${this.selectedMicrophoneAId})`);
+                console.log(`マイク2: ${this.selectedMicrophoneBName} (${this.selectedMicrophoneBId})`);
+                
+                // マイク1へのアクセス
+                const constraintsA = {
+                    audio: {
+                        deviceId: { exact: this.selectedMicrophoneAId },
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 48000
+                    }
+                };
+                
+                // マイク2へのアクセス
+                const constraintsB = {
+                    audio: {
+                        deviceId: { exact: this.selectedMicrophoneBId },
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 48000
+                    }
+                };
+                
+                // 両方のマイクストリームを取得
+                this.audioStreamA = await navigator.mediaDevices.getUserMedia(constraintsA);
+                this.audioStreamB = await navigator.mediaDevices.getUserMedia(constraintsB);
+                
+                // MediaRecorderA を初期化
+                this.mediaRecorderA = new MediaRecorder(this.audioStreamA, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+                this.audioChunksA = [];
+                
+                this.mediaRecorderA.addEventListener('dataavailable', event => {
+                    if (event.data.size > 0) {
+                        this.audioChunksA.push(event.data);
+                    }
+                });
+                
+                // MediaRecorderB を初期化
+                this.mediaRecorderB = new MediaRecorder(this.audioStreamB, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+                this.audioChunksB = [];
+                
+                this.mediaRecorderB.addEventListener('dataavailable', event => {
+                    if (event.data.size > 0) {
+                        this.audioChunksB.push(event.data);
+                    }
+                });
+                
+                // 2台同時録音開始
+                this.mediaRecorderA.start(1000);
+                this.mediaRecorderB.start(1000);
+                
+                console.log('2台同時Web録音を開始しました');
+                
+            } catch (error) {
+                console.error('2台同時Web録音開始エラー:', error);
+                throw new Error('2台のマイクへのアクセスに失敗しました。デバイスの設定を確認してください。');
+            }
+        },
+        
+        // 2台同時Web録音停止
+        async stopDualWebRecording() {
+            return new Promise((resolve) => {
+                let stoppedCount = 0;
+                const totalRecorders = 2;
+                
+                const checkAllStopped = () => {
+                    stoppedCount++;
+                    if (stoppedCount >= totalRecorders) {
+                        console.log('2台同時Web録音を停止しました');
+                        
+                        // 音声ストリームを停止
+                        if (this.audioStreamA) {
+                            this.audioStreamA.getTracks().forEach(track => track.stop());
+                        }
+                        if (this.audioStreamB) {
+                            this.audioStreamB.getTracks().forEach(track => track.stop());
+                        }
+                        
+                        resolve();
+                    }
+                };
+                
+                // MediaRecorderA停止
+                if (this.mediaRecorderA && this.mediaRecorderA.state !== 'inactive') {
+                    this.mediaRecorderA.addEventListener('stop', checkAllStopped);
+                    this.mediaRecorderA.stop();
+                } else {
+                    checkAllStopped();
+                }
+                
+                // MediaRecorderB停止
+                if (this.mediaRecorderB && this.mediaRecorderB.state !== 'inactive') {
+                    this.mediaRecorderB.addEventListener('stop', checkAllStopped);
+                    this.mediaRecorderB.stop();
+                } else {
+                    checkAllStopped();
+                }
+            });
+        },
+        
+        // 録音停止・分析開始
+        async stopRecording() {
+            try {
+                this.isRecording = false;
+                this.stopTimer();
+                
+                // 2台同時Web録音を停止
+                await this.stopDualWebRecording();
+                
+                // session_idを生成（進行状況監視用）
+                const deviceA = this.deviceAInput.value.trim() || "0";
+                const deviceB = this.deviceBInput.value.trim() || "1";
+                this.sessionId = `${deviceA}_${deviceB}_${Date.now()}`;
+                
+                // 停止ボタンを無効化
+                this.stopBtn.disabled = true;
+                this.stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 分析開始中...';
+                
+                // 録音中画面を隠して処理中画面を表示
+                this.activePhase.style.display = 'none';
+                this.showProcessingScreen();
+                
+                // 2つの録音データをサーバーに送信・分析
+                await this.uploadAndProcessDualAudio();
+                
+            } catch (error) {
+                console.error('録音停止エラー:', error);
+                this.showError('録音停止中にエラーが発生しました: ' + error.message);
+            }
+        },
+        
+        // 2つの録音データをサーバーにアップロード・処理
+        async uploadAndProcessDualAudio() {
+            try {
+                // 音声データをBlobに変換
+                const audioBlobA = new Blob(this.audioChunksA, { type: 'audio/webm' });
+                const audioBlobB = new Blob(this.audioChunksB, { type: 'audio/webm' });
+                
+                console.log('録音データA サイズ:', audioBlobA.size, 'bytes');
+                console.log('録音データB サイズ:', audioBlobB.size, 'bytes');
+                
+                if (audioBlobA.size === 0 || audioBlobB.size === 0) {
+                    throw new Error('録音データが空です');
+                }
+                
+                // FormDataで2つの音声データとパラメータを送信
+                const formData = new FormData();
+                formData.append('audio_a', audioBlobA, 'recording_device_a.webm');
+                formData.append('audio_b', audioBlobB, 'recording_device_b.webm');
+                formData.append('participant_a', this.speakerAInput.value.trim());
+                formData.append('participant_b', this.speakerBInput.value.trim());
+                formData.append('microphone_a_name', this.selectedMicrophoneAName);
+                formData.append('microphone_b_name', this.selectedMicrophoneBName);
+                formData.append('session_name', `dual_session_${Date.now()}`);
+                formData.append('csrfmiddlewaretoken', 
+                    document.querySelector('[name=csrfmiddlewaretoken]').value);
+                
+                console.log('2つの音声データをサーバーに送信中...');
+                
+                const response = await fetch('{% url "accounts:process_dual_recording" %}', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    console.log('2台同時音声処理完了:', result);
+                    // 成功時の処理結果表示
+                    this.showProcessingResults(result);
+                } else {
+                    throw new Error(result.message || '音声処理に失敗しました');
+                }
+                
+            } catch (error) {
+                console.error('2台同時音声アップロードエラー:', error);
+                this.showError('音声データの処理中にエラーが発生しました: ' + error.message);
+            }
+        },
+        
+        // 処理結果を表示
+        showProcessingResults(result) {
+            const processingPhase = document.getElementById('processing-phase');
+            if (processingPhase) {
+                processingPhase.style.display = 'none';
+            }
+            
+            // 結果表示画面を作成
+            let resultsPhase = document.getElementById('results-phase');
+            if (!resultsPhase) {
+                resultsPhase = document.createElement('div');
+                resultsPhase.id = 'results-phase';
+                resultsPhase.className = 'recording-phase';
+                resultsPhase.innerHTML = `
+                    <h4 class="mb-3 text-success">
+                        <i class="fas fa-check-circle"></i> 2台同時録音・処理完了
+                    </h4>
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-chart-bar"></i> 分析結果</h6>
+                        <div id="analysis-summary">${result.message || '2台同時音声分析が完了しました'}</div>
+                        
+                        ${result.summary ? `
+                            <div class="mt-3">
+                                <p><strong>参加者:</strong> ${result.summary.participants.join(', ')}</p>
+                                <p><strong>検出トピック:</strong> ${result.summary.topics_detected.join(', ')}</p>
+                                <p><strong>使用デバイス:</strong> ${result.summary.devices_used.join(', ')}</p>
+                                <p><strong>処理ファイル数:</strong> ${result.summary.total_files_processed}個</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="button" class="btn btn-primary" onclick="location.reload()">
+                            <i class="fas fa-plus"></i> 新しいセッション
+                        </button>
+                        <a href="{% url 'accounts:index' %}" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> ホームに戻る
+                        </a>
+                    </div>
+                `;
+                
+                // 親要素に追加
+                this.activePhase.parentNode.appendChild(resultsPhase);
+            }
+            
+            resultsPhase.style.display = 'block';
+        },
+        
+        // 処理中画面を表示
+        showProcessingScreen() {
+            // 処理中画面が存在しない場合は作成
+            let processingPhase = document.getElementById('processing-phase');
+            if (!processingPhase) {
+                processingPhase = document.createElement('div');
+                processingPhase.id = 'processing-phase';
+                processingPhase.className = 'recording-phase text-center';
+                processingPhase.innerHTML = `
+                    <h4 class="mb-3">
+                        <i class="fas fa-spinner fa-spin text-primary"></i> <span id="current-status">音声データを処理中...</span>
+                    </h4>
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> 実行中の処理</h6>
+                        <ul class="mb-0 small text-start" id="process-steps">
+                            <li id="step-processing">音声データ処理 <i class="fas fa-clock text-muted"></i></li>
+                            <li id="step-upload">GCSアップロード <i class="fas fa-clock text-muted"></i></li>
+                            <li id="step-transcription">文字起こし <i class="fas fa-clock text-muted"></i></li>
+                            <li id="step-analysis">関心度分析 <i class="fas fa-clock text-muted"></i></li>
+                            <li id="step-database">データベース保存 <i class="fas fa-clock text-muted"></i></li>
+                        </ul>
+                    </div>
+                    <div class="progress mb-3">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 10%">10%</div>
+                    </div>
+                    <p class="text-muted">録音した音声を分析しています。数分かかる場合があります。</p>
+                    <div id="analysis-preview" class="alert alert-success" style="display: none;">
+                        <h6><i class="fas fa-brain"></i> 分析結果プレビュー</h6>
+                        <div id="analysis-content"></div>
+                    </div>
+                `;
+                
+                // activePhaseの後に挿入
+                this.activePhase.parentNode.insertBefore(processingPhase, this.activePhase.nextSibling);
+            }
+            
+            processingPhase.style.display = 'block';
+            
+            // 進行状況の監視を開始
+            this.startProgressMonitoring();
+        },
+        
+        // 進行状況監視を開始
+        startProgressMonitoring() {
+            if (this.progressTimer) {
+                clearInterval(this.progressTimer);
+            }
+            
+            this.progressTimer = setInterval(async () => {
+                try {
+                    await this.updateProgress();
+                } catch (error) {
+                    console.error('進行状況更新エラー:', error);
+                }
+            }, 2000); // 2秒ごとに更新
+        },
+        
+        // 進行状況を更新
+        async updateProgress() {
+            if (!this.sessionId) {
+                console.warn('Session ID が設定されていません');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`{% url "accounts:progress_api" %}?session_id=${this.sessionId}`);
+                const data = await response.json();
+                
+                // ステータス表示を更新
+                const statusEl = document.getElementById('current-status');
+                if (statusEl) {
+                    statusEl.textContent = data.message || '処理中...';
+                }
+                
+                // プログレスバーを更新
+                const progressBar = document.getElementById('progress-bar');
+                if (progressBar) {
+                    const progress = Math.max(10, data.progress || 10);
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                }
+                
+                // 完了したステップにチェックマークを付ける
+                if (data.steps_completed) {
+                    data.steps_completed.forEach(step => {
+                        const stepEl = document.getElementById(`step-${step}`);
+                        if (stepEl && !stepEl.classList.contains('completed')) {
+                            stepEl.innerHTML = stepEl.innerHTML.replace(
+                                '<i class="fas fa-clock text-muted"></i>', 
+                                '<i class="fas fa-check text-success"></i>'
+                            );
+                            stepEl.classList.add('completed', 'text-success');
+                        }
+                    });
+                }
+                
+                // 分析結果が利用可能になったら表示
+                if (data.analysis_results && data.analysis_results.topics_detected && data.analysis_results.topics_detected.length > 0) {
+                    this.showAnalysisPreview(data.analysis_results);
+                }
+                
+                // 完了またはエラーの場合は監視を停止
+                if (data.status === 'completed' || data.status === 'error' || data.status === 'timeout') {
+                    if (this.progressTimer) {
+                        clearInterval(this.progressTimer);
+                        this.progressTimer = null;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('進行状況取得エラー:', error);
+            }
+        },
+        
+        // 分析結果のプレビューを表示
+        showAnalysisPreview(analysisResults) {
+            const previewEl = document.getElementById('analysis-preview');
+            const contentEl = document.getElementById('analysis-content');
+            
+            if (previewEl && contentEl) {
+                let content = `<p><strong>会話要約:</strong> ${analysisResults.summary}</p>`;
+                
+                if (analysisResults.topics_detected && analysisResults.topics_detected.length > 0) {
+                    content += '<p><strong>検出されたトピック:</strong></p>';
+                    content += '<div class="d-flex flex-wrap gap-2">';
+                    analysisResults.topics_detected.forEach(topic => {
+                        content += `<span class="badge bg-primary">${topic}</span>`;
+                    });
+                    content += '</div>';
+                }
+                
+                if (analysisResults.participants && analysisResults.participants.length > 0) {
+                    content += `<p class="mt-2"><small><strong>参加者:</strong> ${analysisResults.participants.join(', ')}</small></p>`;
+                }
+                
+                contentEl.innerHTML = content;
+                previewEl.style.display = 'block';
+            }
+        },
+        
+        // サーバーに録音開始を通知
+        async notifyRecordingStart(deviceA, speakerA, deviceB, speakerB) {
+            // 実際にはここでmain.pyの録音開始部分を呼び出す
+            console.log('録音開始:', { deviceA, speakerA, deviceB, speakerB });
+            
+            // TODO: 実際のサーバー通信実装
+            // const response = await fetch('/api/start-recording/', {...});
+        },
+        
+        // 録音処理・分析
+        async processRecording() {
+            const deviceA = this.deviceAInput.value.trim();
+            const speakerA = this.speakerAInput.value.trim();
+            const deviceB = this.deviceBInput.value.trim();
+            const speakerB = this.speakerBInput.value.trim();
+            
+            // main.pyの処理を実行
+            const formData = new FormData();
+            formData.append('device_a_index', deviceA);
+            formData.append('speaker_tag_a', speakerA);
+            formData.append('device_b_index', deviceB);
+            formData.append('speaker_tag_b', speakerB);
+            formData.append('csrfmiddlewaretoken', 
+                document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            try {
+                const response = await fetch('{% url "accounts:run_main_script" %}', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                if (response.ok) {
+                    // 結果ページに移動
+                    window.location.href = response.url;
+                } else {
+                    throw new Error(`サーバーエラー: ${response.status}`);
+                }
+                
+            } catch (error) {
+                this.showError('分析処理中にエラーが発生しました: ' + error.message);
+            }
+        },
+        
+        // タイマー開始
+        startTimer() {
+            this.timer = setInterval(() => {
+                if (!this.startTime) return;
+                
+                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                
+                this.recordingTimeDisplay.textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        },
+        
+        // タイマー停止
+        stopTimer() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+        },
+        
+        // セットアップに戻る
+        resetToSetup() {
+            this.isRecording = false;
+            this.stopTimer();
+            
+            this.activePhase.style.display = 'none';
+            this.setupPhase.style.display = 'block';
+            
+            this.recordingTimeDisplay.textContent = '0:00';
+        },
+        
+        // エラー表示
+        showError(message) {
+            this.activePhase.style.display = 'none';
+            if (this.errorPhase) {
+                const errorMessageEl = document.getElementById('error-message');
+                if (errorMessageEl) {
+                    errorMessageEl.textContent = message;
+                }
+                this.errorPhase.style.display = 'block';
+            } else {
+                alert(message);
+            }
+        }
+    };
+    
+    // 録音コントローラーを初期化
+    RecordingController.init();
+    
+    // Web録音用マイクデバイス管理（2台対応）
+    const MicrophoneManager = {
+        // DOM要素
+        loadingEl: document.getElementById('microphones-loading'),
+        listEl: document.getElementById('microphones-list'),
+        errorEl: document.getElementById('microphones-error'),
+        errorMessageEl: document.getElementById('microphones-error-message'),
+        refreshBtn: document.getElementById('refresh-microphones'),
+        selectElA: document.getElementById('microphone_device_a'),
+        selectElB: document.getElementById('microphone_device_b'),
+        
+        // 初期化
+        init() {
+            this.loadMicrophones();
+            
+            // 更新ボタンのイベント
+            if (this.refreshBtn) {
+                this.refreshBtn.addEventListener('click', () => {
+                    this.loadMicrophones();
+                });
+            }
+            
+            // デバイス選択の変更イベント
+            if (this.selectElA) {
+                this.selectElA.addEventListener('change', () => this.validateSelection());
+            }
+            if (this.selectElB) {
+                this.selectElB.addEventListener('change', () => this.validateSelection());
+            }
+        },
+        
+        // 選択の妥当性をチェック
+        validateSelection() {
+            if (this.selectElA && this.selectElB) {
+                const valueA = this.selectElA.value;
+                const valueB = this.selectElB.value;
+                
+                if (valueA && valueB && valueA === valueB) {
+                    alert('異なるマイクデバイスを選択してください。');
+                    this.selectElB.value = '';
+                }
+            }
+        },
+        
+        // マイク一覧を取得・表示
+        async loadMicrophones() {
+            try {
+                this.showLoading();
+                
+                // マイクアクセス許可を求める
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop()); // 一旦停止
+                
+                // デバイス一覧を取得
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputDevices = devices.filter(device => device.kind === 'audioinput');
+                
+                if (audioInputDevices.length >= 2) {
+                    this.displayMicrophones(audioInputDevices);
+                } else {
+                    this.showError(`デュアル録音には2台以上のマイクが必要です。現在: ${audioInputDevices.length}台`);
+                }
+                
+            } catch (error) {
+                console.error('マイク取得エラー:', error);
+                if (error.name === 'NotAllowedError') {
+                    this.showError('マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。');
+                } else {
+                    this.showError('マイクデバイスの取得に失敗しました');
+                }
+            }
+        },
+        
+        // ローディング表示
+        showLoading() {
+            this.loadingEl.style.display = 'block';
+            this.listEl.style.display = 'none';
+            this.errorEl.style.display = 'none';
+            
+            if (this.refreshBtn) {
+                this.refreshBtn.disabled = true;
+                this.refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 検出中...';
+            }
+        },
+        
+        // マイク一覧表示
+        displayMicrophones(devices) {
+            this.loadingEl.style.display = 'none';
+            this.errorEl.style.display = 'none';
+            
+            // テーブル表示
+            let html = '<div class="table-responsive">';
+            html += '<table class="table table-sm table-hover">';
+            html += '<thead><tr>';
+            html += '<th>デバイス名</th><th>デバイスID</th><th>推奨用途</th>';
+            html += '</tr></thead><tbody>';
+            
+            devices.forEach((device, index) => {
+                const deviceName = device.label || `マイクデバイス ${index + 1}`;
+                const recommendation = index === 0 ? 'マイク1推奨' : index === 1 ? 'マイク2推奨' : '追加デバイス';
+                const badgeClass = index === 0 ? 'bg-primary' : index === 1 ? 'bg-success' : 'bg-secondary';
+                
+                html += '<tr>';
+                html += `<td title="${deviceName}">${this.truncateText(deviceName, 40)}</td>`;
+                html += `<td><small class="text-muted">${device.deviceId.substring(0, 20)}...</small></td>`;
+                html += `<td><span class="badge ${badgeClass}">${recommendation}</span></td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            html += `<small class="text-muted">検出されたマイクデバイス数: ${devices.length}</small>`;
+            
+            this.listEl.innerHTML = html;
+            this.listEl.style.display = 'block';
+            
+            // セレクトボックスを更新
+            this.updateSelectOptions(devices);
+            
+            if (this.refreshBtn) {
+                this.refreshBtn.disabled = false;
+                this.refreshBtn.innerHTML = '<i class="fas fa-sync"></i> 更新';
+            }
+        },
+        
+        // セレクトボックスを更新
+        updateSelectOptions(devices) {
+            // マイク1のセレクトボックス更新
+            if (this.selectElA) {
+                this.selectElA.innerHTML = '<option value="">マイク1を選択してください</option>';
+                devices.forEach((device, index) => {
+                    const deviceName = device.label || `マイクデバイス ${index + 1}`;
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = deviceName;
+                    if (index === 0) option.selected = true; // デフォルトで最初のデバイス
+                    this.selectElA.appendChild(option);
+                });
+            }
+            
+            // マイク2のセレクトボックス更新
+            if (this.selectElB) {
+                this.selectElB.innerHTML = '<option value="">マイク2を選択してください</option>';
+                devices.forEach((device, index) => {
+                    const deviceName = device.label || `マイクデバイス ${index + 1}`;
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = deviceName;
+                    if (index === 1 && devices.length >= 2) option.selected = true; // デフォルトで2番目のデバイス
+                    this.selectElB.appendChild(option);
+                });
+            }
+        },
+        
+        // エラー表示
+        showError(message) {
+            this.loadingEl.style.display = 'none';
+            this.listEl.style.display = 'none';
+            this.errorMessageEl.textContent = message;
+            this.errorEl.style.display = 'block';
+            
+            if (this.refreshBtn) {
+                this.refreshBtn.disabled = false;
+                this.refreshBtn.innerHTML = '<i class="fas fa-sync"></i> 更新';
+            }
+        },
+        
+        // テキスト切り捨て
+        truncateText(text, maxLength) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+    };
+    
+    // マイクデバイスマネージャーを初期化
+    MicrophoneManager.init();
 });
 </script>
 {% endblock %} 

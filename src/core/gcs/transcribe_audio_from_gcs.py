@@ -39,14 +39,27 @@ def transcribe_gcs(gcs_uri, user_speaker_tag="unknown"):
     client = speech.SpeechClient()
     audio = speech.RecognitionAudio(uri=gcs_uri)
 
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=44100,
-        language_code="ja-JP",
-        enable_automatic_punctuation=True,
-        enable_word_time_offsets=True,
-        enable_speaker_diarization=False
-    )
+    # ファイル形式を自動判定してconfigを設定
+    if gcs_uri.endswith('.webm'):
+        # WebM OPUS形式の場合
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.WEBM_OPUS,
+            # sample_rate_hertzは指定しない（WebMヘッダーから自動検出）
+            language_code="ja-JP",
+            enable_automatic_punctuation=True,
+            enable_word_time_offsets=True,
+            enable_speaker_diarization=False
+        )
+    else:
+        # WAV/LINEAR16形式の場合（従来のまま）
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=44100,
+            language_code="ja-JP",
+            enable_automatic_punctuation=True,
+            enable_word_time_offsets=True,
+            enable_speaker_diarization=False
+        )
 
     print("文字起こし処理を開始しています...")
     try:

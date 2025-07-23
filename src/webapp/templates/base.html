@@ -22,24 +22,120 @@
             padding: 1rem 0;
             margin-top: auto;
         }
-        .header-title {
-            color: #FFF6EE;
+        
+        /* カスタムナビゲーションバー */
+        .navbar-custom {
+            background: linear-gradient(135deg, #fffbf0 0%, #fff2d6 100%);
+            border-bottom: 1px solid #f0e6c4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
-        .header-bg {
-            background-color: #1e3b66;
+        
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link,
+        .navbar-custom .dropdown-toggle,
+        .navbar-custom .dropdown-item {
+            color: #3e2723 !important;
+            font-weight: 600;
+            font-size: 1.15rem;
+            padding-top: 0.7rem !important;
+            padding-bottom: 0.7rem !important;
+            padding-left: 1.2rem !important;
+            padding-right: 1.2rem !important;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-custom .navbar-brand {
+            letter-spacing: 0.03em;
+        }
+
+        .navbar-custom .nav-link {
+            border-radius: 0.5rem;
+        }
+
+        .navbar-custom .navbar-nav .nav-item {
+            margin-right: 0.2rem;
+        }
+
+        .navbar-custom .navbar-brand:hover,
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .dropdown-toggle:hover,
+        .navbar-custom .dropdown-item:hover {
+            color: #2d5a27 !important;
+            background-color: rgba(45, 90, 39, 0.08);
+            border-radius: 5px;
+        }
+        
+        .navbar-custom .dropdown-menu {
+            border: 1px solid #f0e6c4;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: #fffcf7;
+        }
+        
+        .navbar-custom .navbar-toggler {
+            border-color: #f0e6c4;
+        }
+        
+        .navbar-custom .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2845, 90, 39, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
     </style>
 </head>
 <body>
-    <header class="py-4 header-bg">
-        <div class="container">
-            <h1 class="text-center mb-0 header-title">- Kokoronia -</h1>
-            <h2 class="text-center mb-0 header-subtitle header-title" style="font-size: 1em;">あなたに最適な話題と人物を提案します</h2>
-        </div>
-    </header>
-
-    <main class="py-4">
-        <div class="container">
+    <main>
+        <!-- ナビゲーションバー -->
+        <nav class="navbar navbar-expand-lg navbar-custom">
+            <div class="container">
+                <a class="navbar-brand" href="{% url 'accounts:index' %}">
+                    <i class="fas fa-home"></i> ホーム
+                </a>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        {% if user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:recording' %}">
+                                    <i class="fas fa-microphone"></i> 会話を始める
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <ul class="navbar-nav">
+                        {% if user.is_authenticated %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-user"></i> {{ user.account_id }}
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><h6 class="dropdown-header">{{ user.last_name }} {{ user.first_name }}</h6></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">
+                                        <i class="fas fa-sign-out-alt"></i> ログアウト
+                                    </a></li>
+                                </ul>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:login' %}">
+                                    <i class="fas fa-sign-in-alt"></i> ログイン
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'accounts:signup' %}">
+                                    <i class="fas fa-user-plus"></i> 新規登録
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="container py-4">
             {% block content %}
             {% endblock %}
         </div>

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}main.py 実行結果 - Kokoronia{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">
+                        <i class="fas fa-terminal"></i> main.py 実行結果
+                    </h3>
+                    <p class="text-center text-muted mb-0">
+                        デュアル録音セッション完了
+                    </p>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- 実行パラメーター表示 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-microphone"></i> デバイス1</h6>
+                                    <p><strong>ユーザー:</strong> {{ speaker_tag_a }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-microphone"></i> デバイス2</h6>
+                                    <p><strong>ユーザー:</strong> {{ speaker_tag_b }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 実行結果ステータス -->
+                    <div class="alert {% if execution_success %}alert-success{% else %}alert-danger{% endif %} mb-4">
+                        <h5>
+                            {% if execution_success %}
+                                <i class="fas fa-check-circle"></i> 実行成功
+                            {% else %}
+                                <i class="fas fa-exclamation-triangle"></i> 実行失敗
+                            {% endif %}
+                        </h5>
+                        <p class="mb-0">リターンコード: {{ return_code }}</p>
+                        {% if execution_success %}
+                            <p class="mb-0 small">音声録音・文字起こし・分析が完了しました。</p>
+                        {% else %}
+                            <p class="mb-0 small">エラーが発生しました。下記の出力を確認してください。</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 分析結果表示 -->
+                    {% if analysis_results %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h6><i class="fas fa-brain"></i> 会話分析結果</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if analysis_results.summary %}
+                                <div class="alert alert-info">
+                                    <strong>概要:</strong> {{ analysis_results.summary }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if analysis_results.topics_detected %}
+                                <h6><i class="fas fa-tags"></i> 検出されたトピック</h6>
+                                <div class="mb-3">
+                                    {% for topic in analysis_results.topics_detected %}
+                                        <span class="badge bg-primary me-2 mb-1">{{ topic }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if analysis_results.participants %}
+                                <h6><i class="fas fa-users"></i> 参加者</h6>
+                                <div class="mb-3">
+                                    {% for participant in analysis_results.participants %}
+                                        <span class="badge bg-secondary me-2 mb-1">{{ participant }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 標準出力 -->
+                    {% if script_output %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6><i class="fas fa-desktop"></i> 標準出力</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-dark text-light p-3" style="max-height: 400px; overflow-y: auto; font-size: 0.85em;">{{ script_output }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- エラー出力 -->
+                    {% if script_error %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-warning">
+                            <h6><i class="fas fa-exclamation-triangle"></i> エラー出力</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-danger text-light p-3" style="max-height: 300px; overflow-y: auto; font-size: 0.85em;">{{ script_error }}</pre>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 実行結果が空の場合 -->
+                    {% if not script_output and not script_error %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle"></i>
+                        出力が記録されませんでした。
+                    </div>
+                    {% endif %}
+                    
+                    <!-- アクションボタン -->
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'accounts:recording' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus"></i> 新しいセッション
+                        </a>
+                        <a href="{% url 'accounts:index' %}" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> ホームに戻る
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自動スクロール用のJavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 長いログの場合、最下部にスクロール
+    const preElements = document.querySelectorAll('pre');
+    preElements.forEach(pre => {
+        if (pre.scrollHeight > pre.clientHeight) {
+            pre.scrollTop = pre.scrollHeight;
+        }
+    });
+});
+</script>
+{% endblock %} 
