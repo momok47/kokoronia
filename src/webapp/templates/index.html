@@ -17,7 +17,11 @@
                     - 何気ない会話からあなたの好きを知る -
                 </h2>
                 <p class="lead mb-4" style="color: #3e2723;">
-                    音声会話の分析を通じて、あなたの興味関心を理解し、最適なマッチングを提供します。
+                    {% if user.is_authenticated %}
+                        ようこそ！{{ user.last_name }}{{ user.first_name }}さん
+                    {% else %}
+                        あなたの日常会話から興味関心を自動で分析し、最適なマッチングを提供します。
+                    {% endif %}
                 </p>
                 
                 {% if user.is_authenticated %}
@@ -25,10 +29,10 @@
                         <i class="fas fa-microphone"></i> 会話を始める
                     </a>
                 {% else %}
-                    <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg me-3">
+                    <a href="{% url 'accounts:signup' %}" class="btn btn-loginblue btn-lg me-3">
                         <i class="fas fa-user-plus"></i> 新規登録
                     </a>
-                    <a href="{% url 'accounts:login' %}" class="btn btn-success btn-lg">
+                    <a href="{% url 'accounts:login' %}" class="btn btn-logingreen btn-lg">
                         <i class="fas fa-sign-in-alt"></i> ログイン
                     </a>
                 {% endif %}
@@ -59,7 +63,7 @@
                         <div class="card-body text-center">
                             <i class="fas fa-star fa-3x text-light-yellow mb-3"></i>
                             <h5 class="card-title fw-bold">話し方をサポート</h5>
-                            <p class="card-text">話し方を分析しより魅力的な会話に</p>
+                            <p class="card-text">話し方を分析しより魅力的な話し方へ</p>
                         </div>
                     </div>
                 </div>
@@ -141,6 +145,62 @@
 .alert-sm {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
+}
+
+.btn-kokoromia {
+    background: linear-gradient(135deg, #4ecdc4 0%, #b4ede8 100%);
+    color: #fff !important;
+    border: none;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(78,205,196,0.15);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-kokoromia:hover, .btn-kokoromia:focus {
+    background: linear-gradient(135deg, #38b2ac 0%, #63d2ff 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(78,205,196,0.25);
+}
+
+.btn-shinkai {
+    background: linear-gradient(135deg, #0a2342 0%, #145374 100%);
+    color: #fff !important;
+    border: none;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(10,35,66,0.15);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-shinkai:hover, .btn-shinkai:focus {
+    background: linear-gradient(135deg, #001f3f 0%, #003366 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(10,35,66,0.25);
+}
+
+.btn-loginblue {
+    background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+    color: #fff !important;
+    border: none;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(33,147,176,0.15);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-loginblue:hover, .btn-loginblue:focus {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(33,147,176,0.25);
+}
+
+.btn-logingreen {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: #fff !important;
+    border: none;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(17,153,142,0.15);
+    transition: background 0.3s, box-shadow 0.3s;
+}
+.btn-logingreen:hover, .btn-logingreen:focus {
+    background: linear-gradient(135deg, #0b8457 0%, #3ec300 100%);
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(17,153,142,0.25);
 }
 </style>
 {% endblock %}

@@ -202,16 +202,16 @@ class ProcessRecordingView(LoginRequiredMixin, View):
             
             debug_print(f"音声アップロード完了: {gcs_uri}")
             
-            # 2. 音声転写を実行
-            debug_print("音声転写を実行中...")
+            # 2. 文字起こしを実行
+            debug_print("文字起こしを実行中...")
             transcription_data = transcribe_gcs(gcs_uri, account_id)
             
             if not transcription_data:
-                raise Exception("音声転写に失敗しました")
+                raise Exception("文字起こしに失敗しました")
             
-            debug_print("音声転写完了")
+            debug_print("文字起こし完了")
             
-            # 3. 転写結果をGCSにアップロード
+            # 3. 文字起こし結果をGCSにアップロード
             transcription_json = json.dumps(transcription_data, ensure_ascii=False, indent=2)
             transcription_filename = f"web_transcription_{account_id}_{timestamp}.json"
             transcription_blob_name = f"media/transcriptions/{transcription_filename}"
@@ -224,9 +224,9 @@ class ProcessRecordingView(LoginRequiredMixin, View):
             )
             
             if not gcs_json_uri:
-                raise Exception("転写結果のGCSアップロードに失敗しました")
+                raise Exception("結果のGCSアップロードに失敗しました")
             
-            debug_print(f"転写結果アップロード完了: {gcs_json_uri}")
+            debug_print(f"文字起こし結果アップロード完了: {gcs_json_uri}")
             
             # 4. 興味分析を実行
             debug_print("興味分析を実行中...")
@@ -560,7 +560,7 @@ class RunMainScriptView(LoginRequiredMixin, View):
         step_patterns = {
             r'音声データ(\(|の)': ('processing', '音声データ処理中...', 15),
             r'GCSにアップロード': ('upload', 'GCSアップロード中...', 35),
-            r'文字起こし|transcribe|音声転写': ('transcription', '文字起こし中...', 65),
+            r'文字起こし|transcribe|文字起こし　': ('transcription', '文字起こし中...', 65),
             r'関心度分析|興味分析|analyze': ('analysis', '関心度分析中...', 85),
             r'データベース|保存|save': ('database', 'データベース保存中...', 95),
         }
@@ -827,16 +827,16 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
             
             debug_print(f"音声アップロード完了: {gcs_uri}")
             
-            # 2. 音声転写を実行
-            debug_print("音声転写を実行中...")
+            # 2. 音文字起こしを実行
+            debug_print("音声文字起こしを実行中...")
             transcription_data = transcribe_gcs(gcs_uri, account_id)
             
             if not transcription_data:
-                raise Exception("音声転写に失敗しました")
+                raise Exception("文字こしに失敗しました")
             
-            debug_print("音声転写完了")
+            debug_print("文字起こし完了")
             
-            # 3. 転写結果をGCSにアップロード
+            # 3. 文字起こし結果をGCSにアップロード
             transcription_json = json.dumps(transcription_data, ensure_ascii=False, indent=2)
             transcription_filename = f"dual_transcription_{account_id}_{timestamp}.json"
             transcription_blob_name = f"media/transcriptions/{transcription_filename}"
@@ -849,9 +849,9 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
             )
             
             if not gcs_json_uri:
-                raise Exception("転写結果のGCSアップロードに失敗しました")
+                raise Exception("結果のGCSアップロードに失敗しました")
             
-            debug_print(f"転写結果アップロード完了: {gcs_json_uri}")
+            debug_print(f"文字起こし結果アップロード完了: {gcs_json_uri}")
             
             # 4. 興味分析を実行
             debug_print("興味分析を実行中...")

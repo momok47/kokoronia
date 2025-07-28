@@ -78,14 +78,14 @@ class WebAudioRecordingSession:
         print(f"✅ 音声アップロード完了: {gcs_uri}")
         
         # 文字起こし実行
-        print("音声転写を実行中...")
+        print("文字こしを実行中...")
         transcription_data = transcribe_gcs(gcs_uri, speaker_tag)
         
         if not transcription_data:
             print(f"❌ 文字起こしに失敗しました: {gcs_uri}")
             return False
         
-        print("✅ 音声転写完了")
+        print("✅ 文字起こし完了")
         
         # 文字起こし結果JSONをGCSにアップロード
         transcription_json = json.dumps(transcription_data, ensure_ascii=False, indent=2)
@@ -103,7 +103,7 @@ class WebAudioRecordingSession:
             print("❌ 文字起こしデータのアップロードに失敗しました。")
             return False
         
-        print(f"✅ 転写結果アップロード完了: {gcs_json_uri}")
+        print(f"✅ 文字起こし結果アップロード完了: {gcs_json_uri}")
         
         # 関心度分析を実行
         print("関心度分析を実行中...")

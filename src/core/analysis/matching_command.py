@@ -171,7 +171,6 @@ def main():
     parser.add_argument('--users', action='store_true', help='詳細ユーザー情報を表示')
     parser.add_argument('--match', action='store_true', help='クイックマッチング実行')
     parser.add_argument('--interactive', action='store_true', help='対話型マッチング')
-    parser.add_argument('--mock', action='store_true', help='モックデータテスト')
     
     # オプション引数
     parser.add_argument('--min-score', type=float, default=0.01, 
@@ -186,10 +185,6 @@ def main():
     # Django環境でない場合の処理
     if not DJANGO_AVAILABLE:
         print("エラー: Django環境が利用できません。")
-        if args.mock:
-            print("モックデータテストを実行します...")
-            from user_matching import test_mock_matching
-            test_mock_matching()
         return
     
     # 引数に応じた処理実行
@@ -210,14 +205,9 @@ def main():
         
     if args.interactive:
         run_interactive_matching()
-        
-    if args.mock:
-        print("=== モックデータテスト ===")
-        from user_matching import test_mock_matching
-        test_mock_matching()
     
     # 引数が何も指定されていない場合
-    if not any([args.stats, args.users, args.match, args.interactive, args.mock]):
+    if not any([args.stats, args.users, args.match, args.interactive]):
         print("マッチングコマンドツールへようこそ！")
         print("使用可能なオプション:")
         print("  --help       : ヘルプを表示")
@@ -225,7 +215,6 @@ def main():
         print("  --users      : ユーザー詳細情報")
         print("  --match      : クイックマッチング")
         print("  --interactive: 対話型マッチング")
-        print("  --mock       : モックデータテスト")
         print("\n詳細は --help をご確認ください。")
 
 

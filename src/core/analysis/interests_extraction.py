@@ -131,25 +131,3 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         print(f"エラーが発生しました: {e}")
         print("関心度分析中にエラーが発生しました。モデルのロード、MeCabの設定、または外部ライブラリのインストールを確認してください。")
         return None
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("エラー: 文字起こしファイル名が指定されていません。")
-        print("使用法: python interests_extraction.py <transcription_file_name> [speaker_tag_override]")
-        exit()
-
-    transcription_file_name = sys.argv[1]
-    transcription_blob_name = f"media/transcriptions/{transcription_file_name}" 
-    # このコード単体で回す時用の引数
-    test_speaker_tag_override = sys.argv[2] if len(sys.argv) > 2 else None
-
-    if "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ:
-        print("エラー: 環境変数 GOOGLE_APPLICATION_CREDENTIALS が設定されていません。")
-        print("サービスアカウントキーのJSONファイルパスを設定してください。")
-        exit()
-
-    try:
-        analyze_transcription(transcription_blob_name, test_speaker_tag_override)
-    except Exception as e:
-        print(f"エラーが発生しました: {e}")
-        print("Google CloudのIAM設定、APIの有効化、GCSバケット名、環境変数などが正しいか確認してください。")
