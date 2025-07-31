@@ -9,11 +9,8 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="text-center">
-                        <i class="fas fa-microphone"></i> 会話を始める
+                        <i class="fas fa-microphone"></i> 楽しい会話にしましょう
                     </h3>
-                    <p class="text-center text-muted mb-0">
-                        {{ user.last_name }} {{ user.first_name }} さん
-                    </p>
                 </div>
                 <div class="card-body">
                     <div id="recording-setup" class="recording-phase">
@@ -449,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
-        // 2台同時Web録音開始
+        // 2台同晘Web録音開始
         async startDualWebRecording() {
             try {
                 // 選択されたマイクデバイスを取得
@@ -512,19 +509,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                // 2台同時録音開始
+                // 2台同晘録音開始
                 this.mediaRecorderA.start(1000);
                 this.mediaRecorderB.start(1000);
                 
-                console.log('2台同時Web録音を開始しました');
+                console.log('2台同晘Web録音を開始しました');
                 
             } catch (error) {
-                console.error('2台同時Web録音開始エラー:', error);
+                console.error('2台同晘Web録音開始エラー:', error);
                 throw new Error('2台のマイクへのアクセスに失敗しました。デバイスの設定を確認してください。');
             }
         },
         
-        // 2台同時Web録音停止
+        // 2台同晘Web録音停止
         async stopDualWebRecording() {
             return new Promise((resolve) => {
                 let stoppedCount = 0;
@@ -533,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const checkAllStopped = () => {
                     stoppedCount++;
                     if (stoppedCount >= totalRecorders) {
-                        console.log('2台同時Web録音を停止しました');
+                        console.log('2台同晘Web録音を停止しました');
                         
                         // 音声ストリームを停止
                         if (this.audioStreamA) {
@@ -571,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.isRecording = false;
                 this.stopTimer();
                 
-                // 2台同時Web録音を停止
+                // 2台同晘Web録音を停止
                 await this.stopDualWebRecording();
                 
                 // session_idを生成（進行状況監視用）
@@ -636,7 +633,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    console.log('2台同時音声処理完了:', result);
+                    console.log('2台同晘音声処理完了:', result);
                     // 成功時の処理結果表示
                     this.showProcessingResults(result);
                 } else {
@@ -644,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
             } catch (error) {
-                console.error('2台同時音声アップロードエラー:', error);
+                console.error('2台同晘音声アップロードエラー:', error);
                 this.showError('音声データの処理中にエラーが発生しました: ' + error.message);
             }
         },
@@ -663,29 +660,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultsPhase.id = 'results-phase';
                 resultsPhase.className = 'recording-phase';
                 resultsPhase.innerHTML = `
-                    <h4 class="mb-3 text-success">
-                        <i class="fas fa-check-circle"></i> 2台同時録音・処理完了
-                    </h4>
-                    <div class="alert alert-success">
-                        <h6><i class="fas fa-chart-bar"></i> 分析結果</h6>
-                        <div id="analysis-summary">${result.message || '2台同時音声分析が完了しました'}</div>
-                        
-                        ${result.summary ? `
-                            <div class="mt-3">
-                                <p><strong>参加者:</strong> ${result.summary.participants.join(', ')}</p>
-                                <p><strong>検出トピック:</strong> ${result.summary.topics_detected.join(', ')}</p>
-                                <p><strong>使用デバイス:</strong> ${result.summary.devices_used.join(', ')}</p>
-                                <p><strong>処理ファイル数:</strong> ${result.summary.total_files_processed}個</p>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="d-grid gap-2 mt-3">
-                        <button type="button" class="btn btn-primary" onclick="location.reload()">
-                            <i class="fas fa-plus"></i> 新しいセッション
-                        </button>
-                        <a href="{% url 'accounts:index' %}" class="btn btn-secondary">
-                            <i class="fas fa-home"></i> ホームに戻る
-                        </a>
+                    <div class="text-center py-4">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h4 class="mb-4 text-success">
+                            分析完了
+                        </h4>
+                        <div class="alert alert-success mx-auto" style="max-width: 600px;">
+                            <h6><i class="fas fa-chart-bar"></i> 分析結果</h6>
+                            <div id="analysis-summary">${result.message || '音声分析が完了しました'}</div>
+                            
+                            ${result.summary ? `
+                                <div class="mt-3">
+                                    <p><strong>参加者:</strong> ${result.summary.participants.join(', ')}</p>
+                                    <p><strong>会話のトピック:</strong> ${result.summary.topics_detected.join(', ')}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="d-grid gap-2 mt-4" style="max-width: 400px; margin: 0 auto;">
+                            <button type="button" class="btn btn-primary" onclick="location.reload()">
+                                <i class="fas fa-plus"></i> 新しいセッション
+                            </button>
+                            <a href="{% url 'accounts:index' %}" class="btn btn-secondary">
+                                <i class="fas fa-home"></i> ホームに戻る
+                            </a>
+                        </div>
                     </div>
                 `;
                 
@@ -705,28 +705,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 processingPhase.id = 'processing-phase';
                 processingPhase.className = 'recording-phase text-center';
                 processingPhase.innerHTML = `
-                    <h4 class="mb-3">
-                        <i class="fas fa-spinner fa-spin text-primary"></i> <span id="current-status">音声データを処理中...</span>
-                    </h4>
-                    <div class="alert alert-info">
-                        <h6><i class="fas fa-info-circle"></i> 実行中の処理</h6>
-                        <ul class="mb-0 small text-start" id="process-steps">
-                            <li id="step-processing">音声データ処理 <i class="fas fa-clock text-muted"></i></li>
-                            <li id="step-upload">GCSアップロード <i class="fas fa-clock text-muted"></i></li>
-                            <li id="step-transcription">文字起こし <i class="fas fa-clock text-muted"></i></li>
-                            <li id="step-analysis">関心度分析 <i class="fas fa-clock text-muted"></i></li>
-                            <li id="step-database">データベース保存 <i class="fas fa-clock text-muted"></i></li>
-                        </ul>
-                    </div>
-                    <div class="progress mb-3">
-                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" 
-                             style="width: 10%">10%</div>
-                    </div>
-                    <p class="text-muted">録音した音声を分析しています。数分かかる場合があります。</p>
-                    <div id="analysis-preview" class="alert alert-success" style="display: none;">
-                        <h6><i class="fas fa-brain"></i> 分析結果プレビュー</h6>
-                        <div id="analysis-content"></div>
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-spinner fa-spin text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h4 class="mb-3">
+                            <span id="current-status">音声データを処理中...</span>
+                        </h4>
+                        <div class="alert alert-info mx-auto" style="max-width: 500px;">
+                            <i class="fas fa-info-circle"></i>
+                            録音した音声を分析しています。数分かかる場合があります。
+                        </div>
+                        <div id="analysis-preview" class="alert alert-success mx-auto" style="max-width: 500px; display: none;">
+                            <h6><i class="fas fa-brain"></i> 分析結果プレビュー</h6>
+                            <div id="analysis-content"></div>
+                        </div>
                     </div>
                 `;
                 
@@ -746,6 +739,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(this.progressTimer);
             }
             
+            console.log('進行状況監視を開始:', this.sessionId);
+            
+            // 初回の進行状況を即座に取得
+            this.updateProgress();
+            
+            // タイムアウト監視を開始（10分後にタイムアウト）
+            const timeoutId = setTimeout(() => {
+                console.warn('進行状況監視タイムアウト');
+                if (this.progressTimer) {
+                    clearInterval(this.progressTimer);
+                    this.progressTimer = null;
+                }
+                this.showError('分析処理がタイムアウトしました。時間がかかりすぎている可能性があります。');
+            }, 600000); // 10分
+            
             this.progressTimer = setInterval(async () => {
                 try {
                     await this.updateProgress();
@@ -753,6 +761,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('進行状況更新エラー:', error);
                 }
             }, 2000); // 2秒ごとに更新
+            
+            // タイムアウトIDを保存（完了時にクリア）
+            this.timeoutId = timeoutId;
         },
         
         // 進行状況を更新
@@ -766,32 +777,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`{% url "accounts:progress_api" %}?session_id=${this.sessionId}`);
                 const data = await response.json();
                 
+                console.log('進行状況データ:', data);
+                
                 // ステータス表示を更新
                 const statusEl = document.getElementById('current-status');
                 if (statusEl) {
                     statusEl.textContent = data.message || '処理中...';
-                }
-                
-                // プログレスバーを更新
-                const progressBar = document.getElementById('progress-bar');
-                if (progressBar) {
-                    const progress = Math.max(10, data.progress || 10);
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.textContent = `${progress}%`;
-                }
-                
-                // 完了したステップにチェックマークを付ける
-                if (data.steps_completed) {
-                    data.steps_completed.forEach(step => {
-                        const stepEl = document.getElementById(`step-${step}`);
-                        if (stepEl && !stepEl.classList.contains('completed')) {
-                            stepEl.innerHTML = stepEl.innerHTML.replace(
-                                '<i class="fas fa-clock text-muted"></i>', 
-                                '<i class="fas fa-check text-success"></i>'
-                            );
-                            stepEl.classList.add('completed', 'text-success');
-                        }
-                    });
                 }
                 
                 // 分析結果が利用可能になったら表示
@@ -805,10 +796,46 @@ document.addEventListener('DOMContentLoaded', function() {
                         clearInterval(this.progressTimer);
                         this.progressTimer = null;
                     }
+                    
+                    // タイムアウトタイマーをクリア
+                    if (this.timeoutId) {
+                        clearTimeout(this.timeoutId);
+                        this.timeoutId = null;
+                    }
+                    
+                    // 完了時の処理
+                    if (data.status === 'completed') {
+                        setTimeout(() => {
+                            this.showProcessingResults({
+                                status: 'success',
+                                message: '分析が完了しました！',
+                                summary: data.analysis_results
+                            });
+                        }, 1000);
+                    } else if (data.status === 'error') {
+                        setTimeout(() => {
+                            this.showError('分析処理中にエラーが発生しました: ' + (data.message || '不明なエラー'));
+                        }, 1000);
+                    } else if (data.status === 'timeout') {
+                        setTimeout(() => {
+                            this.showError('分析処理がタイムアウトしました。時間がかかりすぎている可能性があります。');
+                        }, 1000);
+                    }
                 }
                 
             } catch (error) {
                 console.error('進行状況取得エラー:', error);
+                // エラーが続く場合は監視を停止
+                if (this.progressTimer) {
+                    clearInterval(this.progressTimer);
+                    this.progressTimer = null;
+                }
+                
+                // タイムアウトタイマーもクリア
+                if (this.timeoutId) {
+                    clearTimeout(this.timeoutId);
+                    this.timeoutId = null;
+                }
             }
         },
         
@@ -818,11 +845,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const contentEl = document.getElementById('analysis-content');
             
             if (previewEl && contentEl) {
-                let content = `<p><strong>会話要約:</strong> ${analysisResults.summary}</p>`;
+                let content = '';
                 
                 if (analysisResults.topics_detected && analysisResults.topics_detected.length > 0) {
                     content += '<p><strong>検出されたトピック:</strong></p>';
-                    content += '<div class="d-flex flex-wrap gap-2">';
+                    content += '<div class="d-flex flex-wrap gap-2 mb-2">';
                     analysisResults.topics_detected.forEach(topic => {
                         content += `<span class="badge bg-primary">${topic}</span>`;
                     });
@@ -830,7 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 if (analysisResults.participants && analysisResults.participants.length > 0) {
-                    content += `<p class="mt-2"><small><strong>参加者:</strong> ${analysisResults.participants.join(', ')}</small></p>`;
+                    content += `<p class="mb-0"><small><strong>参加者:</strong> ${analysisResults.participants.join(', ')}</small></p>`;
                 }
                 
                 contentEl.innerHTML = content;

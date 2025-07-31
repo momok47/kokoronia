@@ -567,24 +567,49 @@ class RunMainScriptView(LoginRequiredMixin, View):
         
         steps_completed = []
         
+        # 初期進行状況を設定
+        self.update_progress(progress_key, "processing", "音声データ処理中...", 10, [])
+        
         # プロセスが動いている間、出力を監視
         start_time = time.time()
+        last_update_time = start_time
+        
         while process.poll() is None:
-            time.sleep(3)  # 3秒ごとにチェック
+            time.sleep(2)  # 2秒ごとにチェック
             
-            # 経過時間に基づく進行状況推測
-            elapsed = time.time() - start_time
+            current_time = time.time()
+            elapsed = current_time - start_time
             
-            if elapsed < 30:  # 最初の30秒 - 音声データ処理
-                self.update_progress(progress_key, "processing", "音声データ処理中...", 15, ["processing"])
-            elif elapsed < 60:  # 30-60秒 - アップロード
-                self.update_progress(progress_key, "upload", "GCSアップロード中...", 35, ["processing", "upload"])
-            elif elapsed < 120:  # 1-2分 - 文字起こし
-                self.update_progress(progress_key, "transcription", "文字起こし中...", 65, ["processing", "upload", "transcription"])
-            elif elapsed < 180:  # 2-3分 - 関心度分析
-                self.update_progress(progress_key, "analysis", "関心度分析中...", 85, ["processing", "upload", "transcription", "analysis"])
-            else:  # 3分以上 - データベース保存
-                self.update_progress(progress_key, "database", "データベース保存中...", 95, ["processing", "upload", "transcription", "analysis", "database"])
+            # 最低でも5秒ごとに進行状況を更新
+            if current_time - last_update_time >= 5:
+                # 経過時間に基づく進行状況推測
+                if elapsed < 30:  # 最初の30秒 - 音声データ処理
+                    progress = min(25, 10 + int((elapsed / 30) * 15))
+                    self.update_progress(progress_key, "processing", "音声データ処理中...", progress, ["processing"])
+                elif elapsed < 60:  # 30-60秒 - アップロード
+                    progress = min(40, 25 + int(((elapsed - 30) / 30) * 15))
+                    self.update_progress(progress_key, "upload", "GCSアップロード中...", progress, ["processing", "upload"])
+                elif elapsed < 120:  # 1-2分 - 文字起こし
+                    progress = min(70, 40 + int(((elapsed - 60) / 60) * 30))
+                    self.update_progress(progress_key, "transcription", "文字起こし中...", progress, ["processing", "upload", "transcription"])
+                elif elapsed < 180:  # 2-3分 - 関心度分析
+                    progress = min(90, 70 + int(((elapsed - 120) / 60) * 20))
+                    self.update_progress(progress_key, "analysis", "関心度分析中...", progress, ["processing", "upload", "transcription", "analysis"])
+                else:  # 3分以上 - データベース保存
+                    progress = min(95, 90 + int(((elapsed - 180) / 60) * 5))
+                    self.update_progress(progress_key, "database", "データベース保存中...", progress, ["processing", "upload", "transcription", "analysis", "database"])
+                
+                last_update_time = current_time
+                debug_print(f"進行状況更新: {progress}% - {elapsed:.1f}秒経過")
+        
+        # プロセス終了時の最終更新
+        if process.returncode == 0:
+            self.update_progress(progress_key, "completed", "処理完了", 100, 
+                ["processing", "upload", "transcription", "analysis", "database"])
+            debug_print("進行状況更新: 100% - 処理完了")
+        else:
+            self.update_progress(progress_key, "error", "処理エラー", 0, [])
+            debug_print("進行状況更新: 0% - 処理エラー")
     
     def extract_analysis_results(self, stdout):
         """標準出力から分析結果を抽出"""
