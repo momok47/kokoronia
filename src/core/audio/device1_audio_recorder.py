@@ -67,5 +67,3 @@ def record_audio():
     
     return wav_buffer.getvalue(), filename
 
-if __name__ == "__main__":
-    record_audio()

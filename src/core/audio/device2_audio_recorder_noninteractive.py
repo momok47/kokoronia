@@ -130,22 +130,4 @@ def record_dual_audio_noninteractive(device_index_a, device_index_b, duration_se
         return None, None, None, None
 
 
-if __name__ == "__main__":
-    # テスト実行
-    print("=== 非対話型録音テスト ===")
-    print("利用可能なデバイス:")
-    
-    p = pyaudio.PyAudio()
-    for i in range(p.get_device_count()):
-        info = p.get_device_info_by_index(i)
-        if info.get('maxInputChannels') > 0:
-            print(f"  {i}: {info.get('name')}")
-    p.terminate()
-    
-    # テスト録音（デバイス0と2で5秒間）
-    wav_a, file_a, wav_b, file_b = record_dual_audio_noninteractive(0, 2, duration_seconds=5)
-    
-    if wav_a and wav_b:
-        print(f"✅ テスト成功: {len(wav_a)} bytes, {len(wav_b)} bytes")
-    else:
-        print("❌ テスト失敗") 
+ 

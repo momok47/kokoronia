@@ -11,183 +11,113 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-def create_unified_evaluation_prompt(turn_list: list, review: str, item: str = None) -> str:
+def create_unified_evaluation_prompt(conversation_text: str, turn_index: int) -> str:
     """
-    Args:
-        turn_list: ターンの要素リスト
-        review: クライアントの評価
-        item: 評価項目名（Noneの場合は全項目）
-    
-    Returns:
-        統一されたプロンプト
+    LLMに渡すプロンプトを生成する（Few-shotプロンプティング版）
     """
-    # counselorとclientの発言を分けて整理
-    counselor_text = ""
-    client_text = ""
-    
-    for turn in turn_list:
-        if turn['role'] == 'counselor':
-            counselor_text += f"カウンセラー: {turn['utterance']}\n"
-        elif turn['role'] == 'client':
-            client_text += f"クライアント: {turn['utterance']}\n"
-    
-    # 統一されたプロンプト
-    prompt = f"""以下のカウンセリング会話について、評価を行ってください。
+    # Few-shotプロンプティングのための完璧な「お手本」を用意する
+    example_input = (
+        "counselor: こんにちは！今日はどのようなお話を聞かせていただけますか？\n"
+        "client: 最近、仕事でストレスが溜まっていて...\n"
+        "counselor: お疲れ様です。そのストレスについて、もう少し詳しく教えていただけますか？\n"
+        "client: はい、ありがとうございます。上司との関係で悩んでいて...\n"
+        "counselor: それは大変でしたね。上司との関係で具体的にどのようなことが起きているのでしょうか？\n"
+        "client: とても助かりました！話を聞いてもらえて、気持ちが楽になりました。"
+    )
 
-                    会話内容:
-                    カウンセラーの発言:
-                    {counselor_text}
+    example_output = "0点: 0%, 1点: 0%, 2点: 10%, 3点: 30%, 4点: 40%, 5点: 20%"
 
-                    クライアントの発言:
-                    {client_text}
-
-                    クライアントの評価:
-                    {review}
-
-                    評価基準:
-                    0=非常に悪い, 1=悪い, 2=普通, 3=良い, 4=非常に良い, 5=最高
-
-                    【重要】以下の形式で必ず回答してください。他の説明は不要です。"""
-    if item:
-        # 特定項目の評価
-        prompt += f"""
-{item}の観点でのクライアントの評価確率分布を0.0-1.0の範囲で回答してください（合計1.0になるように）。
-
-必ず以下の形式で回答してください：
-0点の確率: [数値]
-1点の確率: [数値]
-2点の確率: [数値]
-3点の確率: [数値]
-4点の確率: [数値]
-5点の確率: [数値]
-
-例：
-0点の確率: 0.05
-1点の確率: 0.15
-2点の確率: 0.25
-3点の確率: 0.35
-4点の確率: 0.15
-5点の確率: 0.05"""
-    else:
-        # 全項目の評価
-        prompt += """
-各評価項目について確率分布を回答してください。
-
-必ず以下の形式で回答してください：
-[項目名]:
-0点の確率: [数値]
-1点の確率: [数値]
-2点の確率: [数値]
-3点の確率: [数値]
-4点の確率: [数値]
-5点の確率: [数値]
-
-例：
-共感:
-0点の確率: 0.05
-1点の確率: 0.15
-2点の確率: 0.25
-3点の確率: 0.35
-4点の確率: 0.15
-5点の確率: 0.05"""
+    # 実際のプロンプトを組み立てる
+    prompt = (
+        "あなたは対話評価の専門家です。提示された対話を分析し、会話全体のポジティブさを0点から5点の6段階で評価し、その確率分布を算出してください。\n\n"
+        "--- お手本 ---\n"
+        "【分析対象の対話】:\n"
+        f"{example_input}\n"
+        "【出力】:\n"
+        f"{example_output}\n\n"
+        "--- 本番 ---\n"
+        "【分析対象の対話】:\n"
+        f"{conversation_text}\n"
+        "【出力】:\n"
+    )
     
     return prompt
 
-def call_llm_for_probability_distribution(prompt: str, llm_pipeline) -> List[float]:
+
+
+def call_llm_for_probability_distribution(tokenizer, model, conversation_text: str) -> List[float]:
     """
-    LLMを呼び出して0-5の確率分布を取得
-    Args:
-        prompt: LLMへのプロンプト
-        llm_pipeline: LLMパイプライン
-    Returns:
-        0-5の各スコアの確率分布 [p0, p1, p2, p3, p4, p5]
+    LLMを呼び出して、会話のテキストから確率分布を取得する
     """
-    if llm_pipeline is None:
-        logger.warning("LLMパイプラインが利用できません。デフォルト確率分布を返します。")
-        return [0.0, 0.0, 0.1, 0.8, 0.1, 0.0]
+    prompt = create_unified_evaluation_prompt(conversation_text, 0)
     
-    try:
-        # LLMを呼び出し
-        response = llm_pipeline(prompt, max_new_tokens=100)[0]['generated_text']
-        
-        # プロンプト部分を除去
-        response_only = response[len(prompt):].strip()
-        
-        # 確率を抽出
-        probabilities = parse_probabilities_from_llm_response(response_only)
-        
-        logger.info(f"LLM確率分布応答: {response_only[:100]}... -> 確率: {probabilities}")
-        return probabilities
-        
-    except Exception as e:
-        logger.error(f"LLM確率分布呼び出しエラー: {e}")
-        logger.warning("デフォルト確率分布を返します。")
-        return [0.0, 0.0, 0.1, 0.8, 0.1, 0.0]
+    # モデルへの入力を準備
+    input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
+
+    # 🚨【重要】テキスト生成パラメータを調整して、LLMの応答を制御
+    response_ids = model.generate(
+        input_ids,
+        max_new_tokens=100,         # 生成する最大トークン数
+        do_sample=True,             # 👈 サンプリングを有効にし、多様な出力を促す
+        temperature=0.7,            # 👈 出力のランダム性を制御 (創造性を少し加える)
+        top_p=0.95,                 # 👈 上位95%の確率を持つ単語からサンプリング
+        repetition_penalty=1.15,    # 👈 繰り返しを抑制するためのペナルティ
+        pad_token_id=tokenizer.eos_token_id  # pad_token_id を eos_token_id に設定
+    )
+    
+    # 応答をデコード
+    response_only = tokenizer.decode(response_ids[0][input_ids.shape[-1]:], skip_special_tokens=True)
+    
+    logger.info(f"LLM Raw Response: '{response_only}'")
+    
+    # 確率を抽出
+    probabilities = parse_probabilities_from_llm_response(response_only)
+    logger.info(f"Parsed Probabilities: {probabilities}")
+
+    return probabilities
 
 def parse_probabilities_from_llm_response(response: str) -> List[float]:
     """
-    LLMの応答から確率分布を抽出
-    Args:
-        response: LLMの応答テキスト
-    Returns:
-        0-5の各スコアの確率分布 [p0, p1, p2, p3, p4, p5]
+    LLMの応答テキスト（多少の揺れや余計な文章があっても対応可能）から
+    確率分布を抽出する、より頑健な関数。
     """
+    # 期待する確率分布の行をすべて見つけるための正規表現
+    # "0点: 10.5%" や " 1 点 : 5 % " のような表記の揺れにも対応
+    pattern = r"(\d)\s*点\s*:\s*([\d\.]+)\s*%"
+    
     try:
-        # 複数の形式に対応するパターン
-        patterns = [
-            # 標準形式（半角コロン）
-            r'0点の確率:\s*([0-9]*\.?[0-9]+)',
-            r'1点の確率:\s*([0-9]*\.?[0-9]+)',
-            r'2点の確率:\s*([0-9]*\.?[0-9]+)',
-            r'3点の確率:\s*([0-9]*\.?[0-9]+)',
-            r'4点の確率:\s*([0-9]*\.?[0-9]+)',
-            r'5点の確率:\s*([0-9]*\.?[0-9]+)'
-        ]
+        matches = re.findall(pattern, response)
         
-        # フォールバック用のパターン（全角コロン対応）
-        fallback_patterns = [
-            r'0点の確率：\s*([0-9]*\.?[0-9]+)',
-            r'1点の確率：\s*([0-9]*\.?[0-9]+)',
-            r'2点の確率：\s*([0-9]*\.?[0-9]+)',
-            r'3点の確率：\s*([0-9]*\.?[0-9]+)',
-            r'4点の確率：\s*([0-9]*\.?[0-9]+)',
-            r'5点の確率：\s*([0-9]*\.?[0-9]+)'
-        ]
+        if not matches:
+            logger.warning(f"応答から確率のパターンが見つかりませんでした。応答: '{response}'")
+            return [1/6] * 6
+
+        # 抽出した確率を格納する辞書を初期化
+        probabilities_dict = {i: 0.0 for i in range(6)}
         
-        probabilities = []
-        for i, pattern in enumerate(patterns):
-            match = re.search(pattern, response, re.IGNORECASE | re.MULTILINE)
-            if match:
-                try:
-                    prob = float(match.group(1))
-                    probabilities.append(prob)
-                except ValueError:
-                    probabilities.append(0.0)
-            else:
-                # フォールバックパターンを試行
-                fallback_match = re.search(fallback_patterns[i], response, re.IGNORECASE | re.MULTILINE)
-                if fallback_match:
-                    try:
-                        prob = float(fallback_match.group(1))
-                        probabilities.append(prob)
-                    except ValueError:
-                        probabilities.append(0.0)
-                else:
-                    probabilities.append(0.0)
+        for score_str, prob_str in matches:
+            score = int(score_str)
+            prob = float(prob_str)
+            if 0 <= score <= 5:
+                probabilities_dict[score] = prob / 100.0  # パーセントを小数に変換
+
+        # 0点から5点のリスト形式に変換
+        probabilities = [probabilities_dict[i] for i in range(6)]
+
+        # 合計が0、または合計が極端にずれている場合は正規化する
+        total_prob = sum(probabilities)
+        if total_prob <= 0:
+            logger.warning(f"抽出した確率の合計が0です。均等分布を返します。抽出結果: {probabilities}")
+            return [1/6] * 6
         
-        # 確率の合計を正規化
-        total = sum(probabilities)
-        if total > 0:
-            probabilities = [p / total for p in probabilities]
-        else:
-            # デフォルト値
-            probabilities = [0.0, 0.0, 0.1, 0.8, 0.1, 0.0]
+        # 合計が1になるように正規化（LLMの計算ミスを補正）
+        probabilities = [p / total_prob for p in probabilities]
         
         return probabilities
-     
+
     except Exception as e:
-        logger.warning(f"確率抽出エラー: {e}, レスポンス: {response}")
-        raise ValueError(f"確率分布抽出中にエラーが発生しました: {e}")
+        logger.error(f"確率のパース中に予期せぬエラーが発生しました: {e}\n応答: '{response}'")
+        return [1/6] * 6
 
 def evaluate_turn_on_items(turn_list: list, review: str, llm_pipeline) -> Dict[str, List[float]]:
     """
@@ -220,11 +150,19 @@ def calculate_item_probabilities(turn_list: list, item: str, review: str, llm_pi
     Returns:
         クライアントの確率分布 [p0, p1, p2, p3, p4, p5]
     """
-    # 統一されたプロンプトを使用
-    prompt = create_unified_evaluation_prompt(turn_list, review, item)
+    # ターンリストから会話テキストを生成
+    conversation_text = ""
+    for turn in turn_list:
+        role = turn.get('role', 'unknown')
+        utterance = turn.get('utterance', '')
+        conversation_text += f"{role}: {utterance}\n"
     
     # LLMを使用した確率分布取得
-    probabilities = call_llm_for_probability_distribution(prompt, llm_pipeline)
+    # llm_pipelineからtokenizerとmodelを取得
+    tokenizer = llm_pipeline.tokenizer
+    model = llm_pipeline.model
+    
+    probabilities = call_llm_for_probability_distribution(tokenizer, model, conversation_text)
     return probabilities
 
 def create_emotion_prompt(dialogue: str, review: str, llm_pipeline) -> str:
@@ -296,7 +234,13 @@ def create_emotion_prompt(dialogue: str, review: str, llm_pipeline) -> str:
         weighted_averages_prompt += f"{item}: 期待値 {expected_score:.2f} (確率: {probabilities})\n"
     
     # 統一されたプロンプトを使用（全項目評価用）
-    prompt = create_unified_evaluation_prompt(turn_list, review)
+    conversation_text = ""
+    for turn in turn_list:
+        role = turn.get('role', 'unknown')
+        utterance = turn.get('utterance', '')
+        conversation_text += f"{role}: {utterance}\n"
+    
+    prompt = create_unified_evaluation_prompt(conversation_text, 0)
     
     # 評価結果を追加
     prompt += f"\n\n評価結果:\n{evaluation_prompt}\n\n加重平均結果:\n{weighted_averages_prompt}"

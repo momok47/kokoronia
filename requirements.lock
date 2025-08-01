@@ -416,6 +416,8 @@ scipy==1.16.0
     # via minorminer
     # via penaltymodel
     # via scikit-learn
+sentencepiece==0.2.0
+    # via lounge
 sentry-sdk==2.33.2
     # via wandb
 setuptools==80.9.0

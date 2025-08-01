@@ -99,22 +99,24 @@ def calculate_weighted_average_probabilities(turn_probabilities: List[List[float
         加重平均された確率分布 [p0, p1, p2, p3, p4, p5]
     """
     if not turn_probabilities:
-        raise ValueError("確率分布リストが空です。データが正しく読み込まれているか確認してください。")
-    
+        # 空の場合は均等な確率分布を返すなど、適切なデフォルト値を設定
+        return [1/6] * 6
+
     # 後半のターンにより重みを付ける（会話の進行に応じて）
-    weights = []
-    for i in range(len(turn_probabilities)):
-        weight = 1.0 + (i * 0.2)  # 後半ほど重みを増加
-        weights.append(weight)
+    weights = [1.0 + (i * 0.2) for i in range(len(turn_probabilities))]
     
     # 正規化
     total_weight = sum(weights)
-    normalized_weights = [w / total_weight for w in weights]
+    if total_weight == 0:
+        # 重みの合計が0になることは通常ないが、念のため均等な重みに
+        normalized_weights = [1/len(weights)] * len(weights)
+    else:
+        normalized_weights = [w / total_weight for w in weights]
     
     # 各スコア（0-5）について加重平均を計算
-    weighted_probabilities = [0.0] * 6  # [p0, p1, p2, p3, p4, p5]
+    weighted_probabilities = [0.0] * 6
     
-    for score_idx in range(6):  # 0-5の各スコア
+    for score_idx in range(6):
         for turn_idx, turn_probs in enumerate(turn_probabilities):
             if len(turn_probs) > score_idx:
                 weighted_probabilities[score_idx] += turn_probs[score_idx] * normalized_weights[turn_idx]
@@ -123,6 +125,10 @@ def calculate_weighted_average_probabilities(turn_probabilities: List[List[float
     total_prob = sum(weighted_probabilities)
     if total_prob > 0:
         weighted_probabilities = [p / total_prob for p in weighted_probabilities]
+    else:
+        # 🚨【重要】合計が0の場合、均等な確率分布を返す
+        logger.warning("加重平均後の確率合計が0でした。均等分布を返します。")
+        weighted_probabilities = [1/6] * 6
     
     return weighted_probabilities
 

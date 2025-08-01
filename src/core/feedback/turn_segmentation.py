@@ -186,11 +186,3 @@ def display_turn_analysis(json_file_path: str):
     # print(result['conversation_text'])
     print(result['turn_list'])
 
-if __name__ == "__main__":
-    # コマンドライン引数からJSONファイルパスを取得
-    if len(sys.argv) > 1:
-        json_file_path = sys.argv[1]
-    else:
-        json_file_path = "test.json"  # デフォルト
-    
-    display_turn_analysis(json_file_path)

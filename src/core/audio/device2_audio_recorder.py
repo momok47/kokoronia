@@ -121,7 +121,3 @@ def record_dual_audio(device_index_a, device_index_b):
         print(f"WAVファイルの作成中にエラーが発生しました: {e}")
         return None, None, None, None
 
-if __name__ == "__main__":
-    # 利用可能な録音デバイスの表示と選択は main.py で行う
-    print("このスクリプトは単体で実行できないよ．")
-    print("利用可能な録音デバイスの表示と選択は main.py でやってね．")
