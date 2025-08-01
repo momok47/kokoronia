@@ -40,19 +40,22 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
     finetuning_data = []
     
     print("=== 教師ありファインチューニングデータ準備 ===")
-    print(f"データ件数: {len(data)}")
+    print(f"📊 データ件数: {len(data)}")
+    
+    processed_count = 0
+    total_turns = 0
     
     for i in range(len(data)):
         if i % 100 == 0:
-            print(f"処理中: {i}/{len(data)}")
+            print(f"🔄 処理中: {i}/{len(data)} ({i/len(data)*100:.1f}%)")
         
         dialogue = data[i]['dialogue']
         review = data[i]['review_by_client_jp']
         
         # デバッグ情報を追加
         if i == 0:
-            print(f"サンプルデータ - dialogue type: {type(dialogue)}")
-            print(f"サンプルデータ - dialogue keys: {dialogue.keys() if isinstance(dialogue, dict) else 'Not a dict'}")
+            print(f"🔍 サンプルデータ - dialogue type: {type(dialogue)}")
+            print(f"🔍 サンプルデータ - dialogue keys: {dialogue.keys() if isinstance(dialogue, dict) else 'Not a dict'}")
         
         # ターン分割を実行 - dialogueがlist型の場合も処理
         turns = None
@@ -63,7 +66,7 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
         else:
             # デバッグ情報を追加
             if i == 0:
-                print(f"dialogueが期待される形式ではありません: {type(dialogue)}")
+                print(f"⚠️  dialogueが期待される形式ではありません: {type(dialogue)}")
             continue
         
         try:
@@ -75,7 +78,9 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
         
         # デバッグ情報を追加
         if i == 0:
-            print(f"ターン数: {len(turn_list)}")
+            print(f"📈 ターン数: {len(turn_list)}")
+        
+        total_turns += len(turn_list)
         
         # 各ターンに対して17項目の評価スコアを計算
         for turn_idx, turn in enumerate(turn_list):
@@ -160,8 +165,13 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
                     "item": item,
                     "turn_idx": turn_idx
                 })
+        
+        processed_count += 1
     
-    print(f"ファインチューニングデータ準備完了: {len(finetuning_data)}件")
+    print(f"✅ ファインチューニングデータ準備完了:")
+    print(f"   - 処理済みデータ: {processed_count}件")
+    print(f"   - 総ターン数: {total_turns}")
+    print(f"   - 生成されたサンプル数: {len(finetuning_data)}件")
     return finetuning_data
 
 class SupervisedFinetuningDataCollator:
@@ -366,13 +376,20 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
     print("\n=== 教師ありファインチューニング開始 ===")
     
     # ファインチューニングデータを準備（train_dataは既に8割のデータ）
+    print("📊 学習データの準備を開始...")
     train_finetuning_data = prepare_supervised_finetuning_data(train_data, llm_pipeline)
     
     # 検証データを準備（valid_dataは既に1割のデータ）
+    print("📊 検証データの準備を開始...")
     val_finetuning_data = prepare_supervised_finetuning_data(valid_data, llm_pipeline)
     
-    print(f"学習データ: {len(train_finetuning_data)}件")
-    print(f"検証データ: {len(val_finetuning_data)}件")
+    print(f"✅ データ準備完了:")
+    print(f"   - 学習データ: {len(train_finetuning_data)}件")
+    print(f"   - 検証データ: {len(val_finetuning_data)}件")
+    
+    if len(train_finetuning_data) == 0:
+        print("❌ 学習データが0件です。データ処理に問題があります。")
+        raise ValueError("学習データが0件です")
     
     # データセットに変換
     from datasets import Dataset
@@ -406,6 +423,9 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
         fp16=torch.cuda.is_available(),
         # 評価戦略と保存戦略を一致させる
         save_strategy="steps",                  # 保存戦略もステップ単位に設定
+        # 進行状況表示の設定
+        report_to=None,                         # wandbなどの外部ログを無効化
+        dataloader_pin_memory=False,            # メモリ使用量を削減
     )
     
     # トレーナーを初期化
@@ -419,13 +439,19 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
     )
     
     # ファインチューニングを実行
-    print("ファインチューニング開始...")
+    print("🚀 ファインチューニング開始...")
+    print(f"   - 総ステップ数: {len(train_dataset) // training_args.per_device_train_batch_size * training_args.num_train_epochs}")
+    print(f"   - エポック数: {training_args.num_train_epochs}")
+    print(f"   - バッチサイズ: {training_args.per_device_train_batch_size}")
+    print(f"   - 学習率: {training_args.learning_rate}")
+    
     trainer.train()
     
     # モデルを保存
+    print("💾 モデルを保存中...")
     trainer.save_model()
     tokenizer.save_pretrained("./supervised_finetuned_model")
-    print("ファインチューニング完了！モデルを保存しました。")
+    print("✅ ファインチューニング完了！モデルを保存しました。")
     
     return trainer, tokenizer
 
