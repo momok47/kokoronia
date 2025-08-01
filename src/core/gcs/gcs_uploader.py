@@ -52,6 +52,11 @@ if __name__ == "__main__":
     local_file_path = os.path.join(recordings_dir, latest_file)
 
     try:
+        # 絶対パスに変換
+        if not os.path.isabs(local_file_path):
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            local_file_path = os.path.join(current_dir, local_file_path)
+        
         with open(local_file_path, 'rb') as f:
             wav_data = f.read()
         

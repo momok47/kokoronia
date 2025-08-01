@@ -141,6 +141,13 @@ def analyze_turn_splitting_from_json(json_file_path: str) -> Dict:
         分析結果の辞書
     """
     # JSONファイルを読み込み
+    import os
+    # 絶対パスまたは相対パスを適切に処理
+    if not os.path.isabs(json_file_path):
+        # 相対パスの場合、現在のディレクトリからのパスを構築
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_file_path = os.path.join(current_dir, json_file_path)
+    
     with open(json_file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     

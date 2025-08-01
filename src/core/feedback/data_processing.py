@@ -129,7 +129,6 @@ def calculate_weighted_average_probabilities(turn_probabilities: List[List[float
 def probability_to_expected_score(probabilities: List[float]) -> float:
     """
     確率分布から期待値を計算
-    
     Args:
         probabilities: [p0, p1, p2, p3, p4, p5]
     

@@ -418,7 +418,7 @@ class RunMainScriptView(LoginRequiredMixin, View):
                 # フォールバック: .envから読み込み
                 env_path = os.path.join(project_root, '.env')
                 if os.path.exists(env_path):
-                    with open(env_path, 'r') as f:
+                    with open(env_path, 'r', encoding='utf-8') as f:
                         for line in f:
                             if line.startswith('GOOGLE_APPLICATION_CREDENTIALS='):
                                 credential_path = line.split('=', 1)[1].strip()

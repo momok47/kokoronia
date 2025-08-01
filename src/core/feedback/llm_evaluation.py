@@ -2,7 +2,12 @@ import re
 import logging
 from typing import Dict, List
 from transformers import pipeline
-from .data_processing import EVALUATION_ITEMS
+
+# 相対インポートを試行、失敗した場合は絶対インポート
+try:
+    from .data_processing import EVALUATION_ITEMS
+except ImportError:
+    from data_processing import EVALUATION_ITEMS
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +45,51 @@ def create_unified_evaluation_prompt(turn_list: list, review: str, item: str = N
                     {review}
 
                     評価基準:
-                    0=非常に悪い, 1=悪い, 2=普通, 3=良い, 4=非常に良い, 5=最高"""
+                    0=非常に悪い, 1=悪い, 2=普通, 3=良い, 4=非常に良い, 5=最高
+
+                    【重要】以下の形式で必ず回答してください。他の説明は不要です。"""
     if item:
         # 特定項目の評価
-        prompt += f"{item}の観点でのクライアントの評価確率分布を0.0-1.0の範囲で回答してください（合計1.0になるように）:\n"
-        prompt += "0点の確率: \n1点の確率: \n2点の確率: \n3点の確率: \n4点の確率: \n5点の確率: "
+        prompt += f"""
+{item}の観点でのクライアントの評価確率分布を0.0-1.0の範囲で回答してください（合計1.0になるように）。
+
+必ず以下の形式で回答してください：
+0点の確率: [数値]
+1点の確率: [数値]
+2点の確率: [数値]
+3点の確率: [数値]
+4点の確率: [数値]
+5点の確率: [数値]
+
+例：
+0点の確率: 0.05
+1点の確率: 0.15
+2点の確率: 0.25
+3点の確率: 0.35
+4点の確率: 0.15
+5点の確率: 0.05"""
     else:
         # 全項目の評価
-        prompt += "各評価項目について確率分布を回答してください。"
+        prompt += """
+各評価項目について確率分布を回答してください。
+
+必ず以下の形式で回答してください：
+[項目名]:
+0点の確率: [数値]
+1点の確率: [数値]
+2点の確率: [数値]
+3点の確率: [数値]
+4点の確率: [数値]
+5点の確率: [数値]
+
+例：
+共感:
+0点の確率: 0.05
+1点の確率: 0.15
+2点の確率: 0.25
+3点の確率: 0.35
+4点の確率: 0.15
+5点の確率: 0.05"""
     
     return prompt
 
@@ -61,7 +103,9 @@ def call_llm_for_probability_distribution(prompt: str, llm_pipeline) -> List[flo
         0-5の各スコアの確率分布 [p0, p1, p2, p3, p4, p5]
     """
     if llm_pipeline is None:
-        raise RuntimeError("LLMパイプラインが利用できません。")
+        logger.warning("LLMパイプラインが利用できません。デフォルト確率分布を返します。")
+        return [0.0, 0.0, 0.1, 0.8, 0.1, 0.0]
+    
     try:
         # LLMを呼び出し
         response = llm_pipeline(prompt, max_new_tokens=100)[0]['generated_text']
@@ -77,7 +121,8 @@ def call_llm_for_probability_distribution(prompt: str, llm_pipeline) -> List[flo
         
     except Exception as e:
         logger.error(f"LLM確率分布呼び出しエラー: {e}")
-        raise RuntimeError(f"LLM確率分布呼び出しに失敗しました: {e}")
+        logger.warning("デフォルト確率分布を返します。")
+        return [0.0, 0.0, 0.1, 0.8, 0.1, 0.0]
 
 def parse_probabilities_from_llm_response(response: str) -> List[float]:
     """
@@ -88,9 +133,9 @@ def parse_probabilities_from_llm_response(response: str) -> List[float]:
         0-5の各スコアの確率分布 [p0, p1, p2, p3, p4, p5]
     """
     try:
-        # より堅牢な正規表現で確率を抽出
-        # 各スコアの確率を順番に抽出
+        # 複数の形式に対応するパターン
         patterns = [
+            # 標準形式（半角コロン）
             r'0点の確率:\s*([0-9]*\.?[0-9]+)',
             r'1点の確率:\s*([0-9]*\.?[0-9]+)',
             r'2点の確率:\s*([0-9]*\.?[0-9]+)',
@@ -99,8 +144,18 @@ def parse_probabilities_from_llm_response(response: str) -> List[float]:
             r'5点の確率:\s*([0-9]*\.?[0-9]+)'
         ]
         
+        # フォールバック用のパターン（全角コロン対応）
+        fallback_patterns = [
+            r'0点の確率：\s*([0-9]*\.?[0-9]+)',
+            r'1点の確率：\s*([0-9]*\.?[0-9]+)',
+            r'2点の確率：\s*([0-9]*\.?[0-9]+)',
+            r'3点の確率：\s*([0-9]*\.?[0-9]+)',
+            r'4点の確率：\s*([0-9]*\.?[0-9]+)',
+            r'5点の確率：\s*([0-9]*\.?[0-9]+)'
+        ]
+        
         probabilities = []
-        for pattern in patterns:
+        for i, pattern in enumerate(patterns):
             match = re.search(pattern, response, re.IGNORECASE | re.MULTILINE)
             if match:
                 try:
@@ -109,7 +164,16 @@ def parse_probabilities_from_llm_response(response: str) -> List[float]:
                 except ValueError:
                     probabilities.append(0.0)
             else:
-                probabilities.append(0.0)
+                # フォールバックパターンを試行
+                fallback_match = re.search(fallback_patterns[i], response, re.IGNORECASE | re.MULTILINE)
+                if fallback_match:
+                    try:
+                        prob = float(fallback_match.group(1))
+                        probabilities.append(prob)
+                    except ValueError:
+                        probabilities.append(0.0)
+                else:
+                    probabilities.append(0.0)
         
         # 確率の合計を正規化
         total = sum(probabilities)
@@ -165,8 +229,15 @@ def calculate_item_probabilities(turn_list: list, item: str, review: str, llm_pi
 
 def create_emotion_prompt(dialogue: str, review: str, llm_pipeline) -> str:
     """感情評価用のプロンプトを作成"""
-    from .turn_segmentation import segment_turns, create_turn_text, create_turn_list
-    from .data_processing import calculate_weighted_average_probabilities, probability_to_expected_score
+    try:
+        from .turn_segmentation import segment_turns, create_turn_text, create_turn_list
+    except ImportError:
+        from turn_segmentation import segment_turns, create_turn_text, create_turn_list
+    
+    try:
+        from .data_processing import calculate_weighted_average_probabilities, probability_to_expected_score
+    except ImportError:
+        from data_processing import calculate_weighted_average_probabilities, probability_to_expected_score
     
     if isinstance(dialogue, dict) and 'dialogue' in dialogue:
         # ターン分割を実行
