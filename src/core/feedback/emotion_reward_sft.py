@@ -40,6 +40,7 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
     finetuning_data = []
     
     print("=== 教師ありファインチューニングデータ準備 ===")
+    print(f"データ件数: {len(data)}")
     
     for i in range(len(data)):
         if i % 100 == 0:
@@ -48,49 +49,67 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
         dialogue = data[i]['dialogue']
         review = data[i]['review_by_client_jp']
         
-        # ターン分割を実行
+        # デバッグ情報を追加
+        if i == 0:
+            print(f"サンプルデータ - dialogue type: {type(dialogue)}")
+            print(f"サンプルデータ - dialogue keys: {dialogue.keys() if isinstance(dialogue, dict) else 'Not a dict'}")
+        
+        # ターン分割を実行 - dialogueがlist型の場合も処理
+        turns = None
         if isinstance(dialogue, dict) and 'dialogue' in dialogue:
             turns = dialogue['dialogue']
+        elif isinstance(dialogue, list):
+            turns = dialogue
+        else:
+            # デバッグ情報を追加
+            if i == 0:
+                print(f"dialogueが期待される形式ではありません: {type(dialogue)}")
+            continue
+        
+        try:
+            from .turn_segmentation import segment_turns, create_turn_list
+        except ImportError:
+            from turn_segmentation import segment_turns, create_turn_list
+        counselor_turns, client_turns, max_turns = segment_turns(turns)
+        turn_list = create_turn_list(counselor_turns, client_turns, max_turns)
+        
+        # デバッグ情報を追加
+        if i == 0:
+            print(f"ターン数: {len(turn_list)}")
+        
+        # 各ターンに対して17項目の評価スコアを計算
+        for turn_idx, turn in enumerate(turn_list):
+            # 17項目の確率分布を計算（LLM使用）
             try:
-                from .turn_segmentation import segment_turns, create_turn_list
+                from .llm_evaluation import evaluate_turn_on_items
             except ImportError:
-                from turn_segmentation import segment_turns, create_turn_list
-            counselor_turns, client_turns, max_turns = segment_turns(turns)
-            turn_list = create_turn_list(counselor_turns, client_turns, max_turns)
+                from llm_evaluation import evaluate_turn_on_items
+            evaluation_probabilities = evaluate_turn_on_items(turn, review, llm_pipeline)
             
-            # 各ターンに対して17項目の評価スコアを計算
-            for turn_idx, turn in enumerate(turn_list):
-                # 17項目の確率分布を計算（LLM使用）
+            # 各評価項目についてプロンプトと応答のペアを作成
+            try:
+                from .data_processing import EVALUATION_ITEMS
+            except ImportError:
+                from data_processing import EVALUATION_ITEMS
+            for item in EVALUATION_ITEMS:
+                probabilities = evaluation_probabilities.get(item, [0.0, 0.0, 0.1, 0.8, 0.1, 0.0])
+                # 確率分布から期待値を計算
                 try:
-                    from .llm_evaluation import evaluate_turn_on_items
+                    from .data_processing import probability_to_expected_score
                 except ImportError:
-                    from llm_evaluation import evaluate_turn_on_items
-                evaluation_probabilities = evaluate_turn_on_items(turn, review, llm_pipeline)
+                    from data_processing import probability_to_expected_score
+                score = probability_to_expected_score(probabilities)
                 
-                # 各評価項目についてプロンプトと応答のペアを作成
-                try:
-                    from .data_processing import EVALUATION_ITEMS
-                except ImportError:
-                    from data_processing import EVALUATION_ITEMS
-                for item in EVALUATION_ITEMS:
-                    probabilities = evaluation_probabilities.get(item, [0.0, 0.0, 0.1, 0.8, 0.1, 0.0])
-                    # 確率分布から期待値を計算
-                    try:
-                        from .data_processing import probability_to_expected_score
-                    except ImportError:
-                        from data_processing import probability_to_expected_score
-                    score = probability_to_expected_score(probabilities)
-                    
-                    # プロンプトを作成
-                    counselor_text = ""
-                    client_text = ""
-                    for utterance in turn:
-                        if utterance['role'] == 'counselor':
-                            counselor_text += f"カウンセラー: {utterance['utterance']}\n"
-                        elif utterance['role'] == 'client':
-                            client_text += f"クライアント: {utterance['utterance']}\n"
-                    
-                    prompt = f"""以下のカウンセリング会話について、評価を行ってください。
+                # プロンプトを作成
+                counselor_text = ""
+                client_text = ""
+                for utterance in turn:
+                    if utterance['role'] == 'counselor':
+                        counselor_text += f"カウンセラー: {utterance['utterance']}\n"
+                    elif utterance['role'] == 'client':
+                        client_text += f"クライアント: {utterance['utterance']}\n"
+                
+                prompt = f"""以下のカウンセリング会話について、評価を行ってください。
 
 会話内容:
 カウンセラーの発言:
@@ -124,23 +143,23 @@ def prepare_supervised_finetuning_data(data, llm_pipeline):
 3点の確率: 0.35
 4点の確率: 0.15
 5点の確率: 0.05"""
-                    
-                    # 応答を作成（確率分布形式）
-                    response = f"""0点の確率: {probabilities[0]:.3f}
+                
+                # 応答を作成（確率分布形式）
+                response = f"""0点の確率: {probabilities[0]:.3f}
 1点の確率: {probabilities[1]:.3f}
 2点の確率: {probabilities[2]:.3f}
 3点の確率: {probabilities[3]:.3f}
 4点の確率: {probabilities[4]:.3f}
 5点の確率: {probabilities[5]:.3f}"""
-                    
-                    finetuning_data.append({
-                        "prompt": prompt,
-                        "response": response,
-                        "probabilities": probabilities,
-                        "expected_score": score,
-                        "item": item,
-                        "turn_idx": turn_idx
-                    })
+                
+                finetuning_data.append({
+                    "prompt": prompt,
+                    "response": response,
+                    "probabilities": probabilities,
+                    "expected_score": score,
+                    "item": item,
+                    "turn_idx": turn_idx
+                })
     
     print(f"ファインチューニングデータ準備完了: {len(finetuning_data)}件")
     return finetuning_data
@@ -230,8 +249,91 @@ def initialize_model_and_pipeline():
     model_name = "tokyotech-llm/Swallow-7b-instruct-hf"
     print(f"読み込み中: {model_name}")
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    # SentencePieceの依存を回避するための環境変数を設定
+    import os
+    import sys
+    
+    # システムレベルのSentencePieceを利用するための環境変数を設定
+    os.environ["PKG_CONFIG_PATH"] = "/opt/homebrew/lib/pkgconfig:" + os.environ.get("PKG_CONFIG_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["DYLD_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("DYLD_LIBRARY_PATH", "")
+    
+    # システムレベルのPythonパッケージを追加
+    sys.path.append('/Users/shirakawamomoko/Library/Python/3.11/lib/python/site-packages')
+    
+    # SentencePieceが利用可能かどうかを確認
+    try:
+        import sentencepiece
+        print("SentencePiece利用可能")
+    except ImportError:
+        print("SentencePiece利用不可 - システムレベルのインストールを確認してください")
+
+    try:
+        # Swallowモデルを読み込み
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            trust_remote_code=True,
+            local_files_only=False,
+            revision="main",
+            use_fast=True,  # 高速トークナイザーを使用
+            legacy=False,  # 新しいトークナイザー実装を使用
+            padding_side="left"  # パディングを左側に配置
+        )
+        
+        # モデルの読み込み
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=torch.bfloat16,  # 公式推奨のデータ型
+            low_cpu_mem_usage=True,
+            device_map="auto" if torch.cuda.is_available() else None,
+            trust_remote_code=True,
+            local_files_only=False,
+            revision="main"
+        )
+        
+        print("モデル読み込み成功")
+        
+    except Exception as e:
+        print(f"モデル読み込みエラー: {e}")
+        # フォールバック: 高速トークナイザーを無効にして再試行
+        try:
+            print("フォールバック: 高速トークナイザーを無効にして再試行")
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_name,
+                use_fast=False,
+                trust_remote_code=True,
+                local_files_only=False,
+                revision="main",
+                legacy=True,  # レガシーモードで試行
+                padding_side="left"
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16,
+                low_cpu_mem_usage=True,
+                device_map="auto" if torch.cuda.is_available() else None,
+                trust_remote_code=True,
+                local_files_only=False,
+                revision="main"
+            )
+            print("フォールバック成功")
+        except Exception as e2:
+            print(f"フォールバックも失敗: {e2}")
+            # 最終フォールバック: 基本的な設定で再試行
+            try:
+                print("最終フォールバック: 基本的な設定で再試行")
+                tokenizer = AutoTokenizer.from_pretrained(
+                    model_name,
+                    trust_remote_code=True
+                )
+                model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    trust_remote_code=True
+                )
+                print("最終フォールバック成功")
+            except Exception as e3:
+                print(f"最終フォールバックも失敗: {e3}")
+                raise e3
 
     # パディングトークンの設定
     if tokenizer.pad_token is None:
@@ -245,7 +347,7 @@ def initialize_model_and_pipeline():
     try:
         llm_pipeline = pipeline(
             "text-generation",
-            model=model_name,
+            model=model,
             tokenizer=tokenizer,
             device=0 if torch.cuda.is_available() else -1,
             max_length=512,
@@ -302,6 +404,8 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
         learning_rate=3e-5,                     # 学習率調整
         weight_decay=0.01,
         fp16=torch.cuda.is_available(),
+        # 評価戦略と保存戦略を一致させる
+        save_strategy="steps",                  # 保存戦略もステップ単位に設定
     )
     
     # トレーナーを初期化
