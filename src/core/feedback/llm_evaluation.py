@@ -30,6 +30,8 @@ def create_unified_evaluation_prompt(conversation_text: str, turn_index: int) ->
     # 実際のプロンプトを組み立てる
     prompt = (
         "あなたは対話評価の専門家です。提示された対話を分析し、会話全体のポジティブさを0点から5点の6段階で評価し、その確率分布を算出してください。\n\n"
+        "【重要】必ず0点から5点までの6段階すべてを含めて、以下の形式で回答してください：\n"
+        "0点: X%, 1点: X%, 2点: X%, 3点: X%, 4点: X%, 5点: X%\n\n"
         "--- お手本 ---\n"
         "【分析対象の対話】:\n"
         f"{example_input}\n"
@@ -157,6 +159,45 @@ def calculate_item_probabilities(turn_list: list, item: str, review: str, llm_pi
         utterance = turn.get('utterance', '')
         conversation_text += f"{role}: {utterance}\n"
     
+    # LLMを使用した確率分布取得
+    # llm_pipelineからtokenizerとmodelを取得
+    tokenizer = llm_pipeline.tokenizer
+    model = llm_pipeline.model
+    
+    probabilities = call_llm_for_probability_distribution(tokenizer, model, conversation_text)
+    return probabilities
+
+def evaluate_conversation_on_items(conversation_text: str, review: str, llm_pipeline) -> Dict[str, List[float]]:
+    """
+    全会話の各評価項目について確率分布を計算
+    Args:
+        conversation_text: 全会話のテキスト
+        review: クライアントの評価
+        llm_pipeline: LLMパイプライン
+    Returns:
+        各評価項目の確率分布辞書
+    """
+    evaluation_probabilities = {}
+    
+    for item in EVALUATION_ITEMS:
+        probabilities = calculate_conversation_item_probabilities(conversation_text, item, review, llm_pipeline)
+        evaluation_probabilities[item] = probabilities
+    
+    return evaluation_probabilities
+
+def calculate_conversation_item_probabilities(conversation_text: str, item: str, review: str, llm_pipeline) -> List[float]:
+    """
+    特定の評価項目について全会話の確率分布を計算（LLMベース）
+    
+    Args:
+        conversation_text: 全会話のテキスト
+        item: 評価項目名
+        review: クライアントの評価
+        llm_pipeline: LLMパイプライン
+    
+    Returns:
+        確率分布 [p0, p1, p2, p3, p4, p5]
+    """
     # LLMを使用した確率分布取得
     # llm_pipelineからtokenizerとmodelを取得
     tokenizer = llm_pipeline.tokenizer

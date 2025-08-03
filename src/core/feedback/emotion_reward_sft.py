@@ -1,6 +1,8 @@
 import torch
 import logging
 import os
+import sys
+from datetime import datetime
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, Trainer
 from transformers import TrainingArguments
 from datasets import Dataset
@@ -15,8 +17,31 @@ except ImportError:
     from llm_evaluation import create_emotion_prompt
 
 # ログ設定
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
-logger = logging.getLogger(__name__)
+def setup_logging():
+    """ログ設定を初期化"""
+    # ログディレクトリを作成
+    log_dir = "./logs_supervised"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # ログファイル名にタイムスタンプを追加
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = f"{log_dir}/training_{timestamp}.log"
+    
+    # ログ設定
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    print(f"ログファイル: {log_file}")
+    return logging.getLogger(__name__)
+
+logger = setup_logging()
 
 def create_output_directories():
     """出力用ディレクトリを作成"""
@@ -29,108 +54,94 @@ def create_output_directories():
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
-            print(f"ディレクトリ作成: {directory}")
+            logger.info(f"ディレクトリ作成: {directory}")
         else:
-            print(f"ディレクトリ既存: {directory}")
+            logger.info(f"ディレクトリ既存: {directory}")
     
     return directories
 
-def prepare_supervised_finetuning_data(data, llm_pipeline):
-    """教師ありファインチューニング用のデータを準備"""
+def prepare_supervised_finetuning_data(data, llm_pipeline, max_samples=None):
+    """教師ありファインチューニング用のデータを準備（全ターンを1つのプロンプトに）"""
     finetuning_data = []
     
-    print("=== 教師ありファインチューニングデータ準備 ===")
-    print(f"📊 データ件数: {len(data)}")
+    logger.info("=== 教師ありファインチューニングデータ準備 ===")
+    logger.info(f"📊 データ件数: {len(data)}")
     
-    # データの構造をデバッグ
-    print(f"🔍 データの型: {type(data)}")
-    if len(data) > 0:
-        print(f"🔍 最初のデータの型: {type(data[0])}")
-        print(f"🔍 最初のデータのキー: {data[0].keys() if hasattr(data[0], 'keys') else 'Not a dict'}")
-    
-
+    # データサンプリング（処理時間短縮のため）
+    if max_samples and len(data) > max_samples:
+        import random
+        random.seed(42)  # 再現性のため
+        data = random.sample(data, max_samples)
+        logger.info(f"📊 サンプリング後データ件数: {len(data)}")
     
     processed_count = 0
-    total_turns = 0
     
     for i in range(len(data)):
-        if i % 50 == 0:
-            print(f"🔄 処理中: {i}/{len(data)} ({i/len(data)*100:.1f}%)")
+        if i % 10 == 0:  # 10件ごとに進捗を表示
+            logger.info(f"🔄 処理中: {i}/{len(data)} ({i/len(data)*100:.1f}%)")
+        
         try:
             data_item = data[i]
         except Exception as e:
-            print(f"data[{i}] アクセス失敗: {e}")
-            print(f"dataの型: {type(data)}")
-            print(f"dataのrepr: {repr(data)}")
-            raise
+            logger.error(f"data[{i}] アクセス失敗: {e}")
+            continue
 
         dialogue = data_item['dialogue']
         review = data_item['review_by_client_jp']
         
-
-        
-        # ターン分割を実行 - dialogueがlist型の場合も処理
+        # ターン分割を実行
         turns = None
         if isinstance(dialogue, dict) and 'dialogue' in dialogue:
             turns = dialogue['dialogue']
         elif isinstance(dialogue, list):
             turns = dialogue
         else:
-            
             continue
         
         try:
             from .turn_segmentation import segment_turns, create_turn_list
         except ImportError:
             from turn_segmentation import segment_turns, create_turn_list
+        
         counselor_turns, client_turns, max_turns = segment_turns(turns)
         turn_list = create_turn_list(counselor_turns, client_turns, max_turns)
         
-
+        # 全ターンの会話テキストを作成
+        full_conversation_text = ""
+        for turn in turn_list:
+            role = turn.get('role', 'unknown')
+            utterance = turn.get('utterance', '')
+            full_conversation_text += f"{role}: {utterance}\n"
         
-        total_turns += len(turn_list)
+        # 17項目の確率分布を計算（全ターンを1つのプロンプトで）
+        try:
+            from .llm_evaluation import evaluate_conversation_on_items
+        except ImportError:
+            from llm_evaluation import evaluate_conversation_on_items
         
-        # 各ターンに対して17項目の評価スコアを計算
-        for turn_idx, turn in enumerate(turn_list):
-            if turn_idx % 10 == 0:
-                print(f"=== ターン {turn_idx + 1}/{len(turn_list)} の処理 ===")
+        evaluation_probabilities = evaluate_conversation_on_items(full_conversation_text, review, llm_pipeline)
+        
+        # 各評価項目についてプロンプトと応答のペアを作成
+        try:
+            from .data_processing import EVALUATION_ITEMS
+        except ImportError:
+            from data_processing import EVALUATION_ITEMS
+        
+        for item in EVALUATION_ITEMS:
+            probabilities = evaluation_probabilities.get(item, [0.0, 0.0, 0.1, 0.8, 0.1, 0.0])
             
-            # 17項目の確率分布を計算（LLM使用）
+            # 確率分布から期待値を計算
             try:
-                from .llm_evaluation import evaluate_turn_on_items
+                from .data_processing import probability_to_expected_score
             except ImportError:
-                from llm_evaluation import evaluate_turn_on_items
-            evaluation_probabilities = evaluate_turn_on_items(turn, review, llm_pipeline)
+                from data_processing import probability_to_expected_score
+            score = probability_to_expected_score(probabilities)
             
-            # 各評価項目についてプロンプトと応答のペアを作成
-            try:
-                from .data_processing import EVALUATION_ITEMS
-            except ImportError:
-                from data_processing import EVALUATION_ITEMS
-            for item in EVALUATION_ITEMS:
-                probabilities = evaluation_probabilities.get(item, [0.0, 0.0, 0.1, 0.8, 0.1, 0.0])
-                # 確率分布から期待値を計算
-                try:
-                    from .data_processing import probability_to_expected_score
-                except ImportError:
-                    from data_processing import probability_to_expected_score
-                score = probability_to_expected_score(probabilities)
-                
-        
-                
-                # プロンプトを作成
-                counselor_text = ""
-                client_text = ""
-                for utterance in turn:
-                    if utterance['role'] == 'counselor':
-                        counselor_text += f"カウンセラー: {utterance['utterance']}\n"
-                    elif utterance['role'] == 'client':
-                        client_text += f"クライアント: {utterance['utterance']}\n"
-                
-                prompt = f"""Rate {item}:
+            # プロンプトを作成（全会話を含む）
+            prompt = f"""Rate {item}:
 
-C: {counselor_text[:20]}...
-U: {client_text[:20]}...
+Conversation:
+{full_conversation_text[:500]}...
 
 【重要】必ず以下の形式で回答してください。他の説明は一切不要です：
 
@@ -142,49 +153,48 @@ U: {client_text[:20]}...
 5点の確率: [数値]
 
 Answer:"""
-                
-                # 応答を作成（確率分布形式）
-                response = f"""0点の確率: {probabilities[0]:.3f}
+            
+            # 応答を作成（確率分布形式）
+            response = f"""0点の確率: {probabilities[0]:.3f}
 1点の確率: {probabilities[1]:.3f}
 2点の確率: {probabilities[2]:.3f}
 3点の確率: {probabilities[3]:.3f}
 4点の確率: {probabilities[4]:.3f}
 5点の確率: {probabilities[5]:.3f}"""
-                
-                # LLMを実際に呼び出して応答を取得
-                try:
-                    from .llm_evaluation import call_llm_for_probability_distribution
-                    llm_response = call_llm_for_probability_distribution(prompt, llm_pipeline)
-                    if llm_response and len(llm_response) == 6:
-                        # LLMの応答を使用
-                        response = f"""0点の確率: {llm_response[0]:.3f}
+            
+            # LLMを実際に呼び出して応答を取得
+            try:
+                from .llm_evaluation import call_llm_for_probability_distribution
+                llm_response = call_llm_for_probability_distribution(prompt, llm_pipeline)
+                if llm_response and len(llm_response) == 6:
+                    # LLMの応答を使用
+                    response = f"""0点の確率: {llm_response[0]:.3f}
 1点の確率: {llm_response[1]:.3f}
 2点の確率: {llm_response[2]:.3f}
 3点の確率: {llm_response[3]:.3f}
 4点の確率: {llm_response[4]:.3f}
 5点の確率: {llm_response[5]:.3f}"""
-                        print(f"✅ LLM応答成功: {item} - 確率分布: {llm_response}")
-                    else:
-                        print(f"❌ LLM応答失敗: {item} - デフォルト確率分布を使用")
-                except Exception as e:
-                    print(f"❌ LLM呼び出しエラー: {item} - {e}")
-                    # デフォルトの応答を使用
-                
-                finetuning_data.append({
-                    "prompt": prompt,
-                    "response": response,
-                    "probabilities": probabilities,
-                    "expected_score": score,
-                    "item": item,
-                    "turn_idx": turn_idx
-                })
+                    logger.info(f"✅ LLM応答成功: {item} - データ{i}")
+                else:
+                    logger.warning(f"❌ LLM応答失敗: {item} - データ{i} - デフォルト確率分布を使用")
+            except Exception as e:
+                logger.error(f"❌ LLM呼び出しエラー: {item} - データ{i} - {e}")
+                # デフォルトの応答を使用
+            
+            finetuning_data.append({
+                "prompt": prompt,
+                "response": response,
+                "probabilities": probabilities,
+                "expected_score": score,
+                "item": item,
+                "data_index": i
+            })
         
         processed_count += 1
     
-    print(f"✅ ファインチューニングデータ準備完了:")
-    print(f"   - 処理済みデータ: {processed_count}件")
-    print(f"   - 総ターン数: {total_turns}")
-    print(f"   - 生成されたサンプル数: {len(finetuning_data)}件")
+    logger.info(f"✅ ファインチューニングデータ準備完了:")
+    logger.info(f"   - 処理済みデータ: {processed_count}件")
+    logger.info(f"   - 生成されたサンプル数: {len(finetuning_data)}件")
     return finetuning_data
 
 class SupervisedFinetuningDataCollator:
@@ -410,23 +420,23 @@ def initialize_model_and_pipeline():
 
     return tokenizer, model, llm_pipeline
 
-def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_data):
-    print("\n=== 教師ありファインチューニング開始 ===")
+def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_data, max_samples=100):
+    logger.info("\n=== 教師ありファインチューニング開始 ===")
     
     # ファインチューニングデータを準備（train_dataは既に8割のデータ）
-    print("📊 学習データの準備を開始...")
-    train_finetuning_data = prepare_supervised_finetuning_data(train_data, llm_pipeline)
+    logger.info("📊 学習データの準備を開始...")
+    train_finetuning_data = prepare_supervised_finetuning_data(train_data, llm_pipeline, max_samples)
     
     # 検証データを準備（valid_dataは既に1割のデータ）
-    print("📊 検証データの準備を開始...")
-    val_finetuning_data = prepare_supervised_finetuning_data(valid_data, llm_pipeline)
+    logger.info("📊 検証データの準備を開始...")
+    val_finetuning_data = prepare_supervised_finetuning_data(valid_data, llm_pipeline, max_samples//4)
     
-    print(f"✅ データ準備完了:")
-    print(f"   - 学習データ: {len(train_finetuning_data)}件")
-    print(f"   - 検証データ: {len(val_finetuning_data)}件")
+    logger.info(f"✅ データ準備完了:")
+    logger.info(f"   - 学習データ: {len(train_finetuning_data)}件")
+    logger.info(f"   - 検証データ: {len(val_finetuning_data)}件")
     
     if len(train_finetuning_data) == 0:
-        print("❌ 学習データが0件です。データ処理に問題があります。")
+        logger.error("❌ 学習データが0件です。データ処理に問題があります。")
         raise ValueError("学習データが0件です")
     
     # データセットに変換
@@ -441,71 +451,32 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
     from transformers import TrainingArguments
     training_args = TrainingArguments(
         output_dir="./supervised_finetuned_model",
-        overwrite_output_dir=True,
-        num_train_epochs=10,                    # エポック数10
-        per_device_train_batch_size=32,         # バッチサイズ32（4GPUで128）
-        per_device_eval_batch_size=32,          # 評価バッチサイズ32
-        eval_steps=200,                         # 200ステップごとに評価
-        save_steps=500,                         # 500ステップごとに保存
-        warmup_steps=200,                       # ウォームアップステップ200
-        learning_rate=2e-5,                     # 学習率2e-5
-        weight_decay=0.01,                      # 重み減衰0.01
-        logging_dir="./logs_supervised",        # ログディレクトリ
-        logging_steps=100,                      # 100ステップごとにログ
-        evaluation_strategy="steps",            # ステップごとに評価
-        save_strategy="steps",                  # ステップごとに保存
-        load_best_model_at_end=True,           # 最良モデルをロード
-        metric_for_best_model="eval_loss",     # 評価指標
-        greater_is_better=False,               # 小さい方が良い
-        report_to=None,                        # レポート無効
-        remove_unused_columns=False,           # 未使用カラムを削除しない
-        dataloader_pin_memory=False,           # ピンメモリ無効
-        dataloader_num_workers=0,              # ワーカー数0
-        gradient_accumulation_steps=1,         # 勾配蓄積ステップ1
-        fp16=False,                            # FP16無効
-        bf16=True,                             # BF16有効
-        optim="adamw_torch",                   # オプティマイザー
-        lr_scheduler_type="cosine",            # スケジューラー
-        warmup_ratio=0.1,                      # ウォームアップ比率
-        max_grad_norm=1.0,                     # 勾配クリッピング
-        seed=42,                               # シード
-        data_seed=42,                          # データシード
-        group_by_length=True,                  # 長さでグループ化
-        length_column_name="length",           # 長さカラム名
-        ignore_data_skip=False,                # データスキップ無視
-        label_names=["labels"],                # ラベル名
-        ddp_find_unused_parameters=False,      # DDP未使用パラメータ無視
-        ddp_bucket_cap_mb=25,                 # DDPバケットサイズ
-        dataloader_drop_last=False,            # 最後のバッチを削除しない
-        eval_accumulation_steps=None,          # 評価蓄積ステップ
-        eval_delay=0,                          # 評価遅延
-        save_on_each_node=False,               # 各ノードに保存しない
-        save_total_limit=None,                 # 保存制限なし
-        save_only_model=False,                 # モデルのみ保存
-        use_cpu=False,                         # CPU使用しない
-        dataloader_prefetch_factor=None,       # プリフェッチ係数
-        dataloader_persistent_workers=False,   # 永続ワーカー無効
-        dataloader_prefetch_factor_override=None,  # プリフェッチ係数オーバーライド
-        dataloader_pin_memory_device="",       # ピンメモリデバイス
-        dataloader_async_init=False,           # 非同期初期化無効
-        dataloader_async_init_timeout=0,       # 非同期初期化タイムアウト
-        dataloader_async_init_batch_size=0,    # 非同期初期化バッチサイズ
-        dataloader_async_init_num_workers=0,   # 非同期初期化ワーカー数
-        dataloader_async_init_pin_memory=False,  # 非同期初期化ピンメモリ無効
-        dataloader_async_init_prefetch_factor=None,  # 非同期初期化プリフェッチ係数
-        dataloader_async_init_persistent_workers=False,  # 非同期初期化永続ワーカー無効
-        dataloader_async_init_timeout_override=None,  # 非同期初期化タイムアウトオーバーライド
-        dataloader_async_init_batch_size_override=None,  # 非同期初期化バッチサイズオーバーライド
-        dataloader_async_init_num_workers_override=None,  # 非同期初期化ワーカー数オーバーライド
-        dataloader_async_init_pin_memory_override=None,  # 非同期初期化ピンメモリオーバーライド
-        dataloader_async_init_prefetch_factor_override=None,  # 非同期初期化プリフェッチ係数オーバーライド
-        dataloader_async_init_persistent_workers_override=None,  # 非同期初期化永続ワーカーオーバーライド
-        dataloader_async_init_timeout_override_override=None,  # 非同期初期化タイムアウトオーバーライドオーバーライド
-        dataloader_async_init_batch_size_override_override=None,  # 非同期初期化バッチサイズオーバーライドオーバーライド
-        dataloader_async_init_num_workers_override_override=None,  # 非同期初期化ワーカー数オーバーライドオーバーライド
-        dataloader_async_init_pin_memory_override_override=None,  # 非同期初期化ピンメモリオーバーライドオーバーライド
-        dataloader_async_init_prefetch_factor_override_override=None,  # 非同期初期化プリフェッチ係数オーバーライドオーバーライド
-        dataloader_async_init_persistent_workers_override_override=None,  # 非同期初期化永続ワーカーオーバーライドオーバーライド
+        per_device_train_batch_size=2,
+        per_device_eval_batch_size=2,
+        num_train_epochs=3,
+        learning_rate=2e-5,
+        warmup_steps=100,
+        logging_steps=10,
+        evaluation_strategy="steps",
+        eval_steps=100,
+        save_steps=500,
+        save_total_limit=2,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        dataloader_async_init_persistent_workers=False,
+        dataloader_async_init_timeout_override=None,
+        dataloader_async_init_batch_size_override=None,
+        dataloader_async_init_num_workers_override=None,
+        dataloader_async_init_pin_memory_override=None,
+        dataloader_async_init_prefetch_factor_override=None,
+        dataloader_async_init_persistent_workers_override=None,
+        dataloader_async_init_timeout_override_override=None,
+        dataloader_async_init_batch_size_override_override=None,
+        dataloader_async_init_num_workers_override_override=None,
+        dataloader_async_init_pin_memory_override_override=None,
+        dataloader_async_init_prefetch_factor_override_override=None,
+        dataloader_async_init_persistent_workers_override_override=None,
     )
     
     # カスタムトレーナーを初期化
@@ -519,28 +490,28 @@ def run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_
     )
     
     # ファインチューニングを実行
-    print("🚀 ファインチューニング開始...")
-    print(f"   - 総ステップ数: {len(train_dataset) // training_args.per_device_train_batch_size * training_args.num_train_epochs}")
-    print(f"   - エポック数: {training_args.num_train_epochs}")
-    print(f"   - バッチサイズ: {training_args.per_device_train_batch_size}")
-    print(f"   - 学習率: {training_args.learning_rate}")
+    logger.info("🚀 ファインチューニング開始...")
+    logger.info(f"   - 総ステップ数: {len(train_dataset) // training_args.per_device_train_batch_size * training_args.num_train_epochs}")
+    logger.info(f"   - エポック数: {training_args.num_train_epochs}")
+    logger.info(f"   - バッチサイズ: {training_args.per_device_train_batch_size}")
+    logger.info(f"   - 学習率: {training_args.learning_rate}")
     
     trainer.train()
     
     # モデルを保存
-    print("💾 モデルを保存中...")
+    logger.info("💾 モデルを保存中...")
     trainer.save_model()
     tokenizer.save_pretrained("./supervised_finetuned_model")
-    print("✅ ファインチューニング完了！モデルを保存しました。")
+    logger.info("✅ ファインチューニング完了！モデルを保存しました。")
     
     return trainer, tokenizer
 
-def evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline):
+def evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline, max_samples=50):
     """ファインチューニングされたモデルの評価"""
-    print("\n=== モデル評価開始 ===")
+    logger.info("\n=== モデル評価開始 ===")
     
     # テストデータの準備
-    test_finetuning_data = prepare_supervised_finetuning_data(test_data, llm_pipeline)
+    test_finetuning_data = prepare_supervised_finetuning_data(test_data, llm_pipeline, max_samples)
     
     # 評価結果
     results = {
@@ -552,7 +523,7 @@ def evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline):
     # 各テストデータについて予測
     for i, data in enumerate(test_finetuning_data):
         if i % 10 == 0:
-            print(f"評価中: {i}/{len(test_finetuning_data)}")
+            logger.info(f"評価中: {i}/{len(test_finetuning_data)}")
         
         # ファインチューニングされたモデルでの予測
         inputs = tokenizer(data["prompt"], return_tensors="pt", truncation=True, max_length=512)
@@ -573,18 +544,18 @@ def evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline):
         results["llm_predictions"].append(data["response"])
         results["ground_truth"].append(data["expected_score"])
     
-    print("評価完了！")
+    logger.info("評価完了！")
     return results
 
 def main():
     """メイン実行関数"""
     
     # 出力用ディレクトリを作成
-    print("\n=== ディレクトリ準備 ===")
+    logger.info("\n=== ディレクトリ準備 ===")
     create_output_directories()
     
     # データセットを読み込み
-    print("\n=== データセット読み込み ===")
+    logger.info("\n=== データセット読み込み ===")
     train_data, test_data, valid_data = load_and_split_dataset()
     
     # モデルとパイプラインを初期化
@@ -592,24 +563,39 @@ def main():
     
     # 教師ありファインチューニングを実行
     try:
-        # 本格的なファインチューニング実行
-        trainer, tokenizer = run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_data)
-        print("教師ありファインチューニングが正常に完了しました。")
+        # Phase 1: 100件でテスト実行
+        logger.info("=== Phase 1: 100件でテスト実行 ===")
+        trainer, tokenizer = run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_data, max_samples=100)
+        logger.info("✅ 100件でのテスト実行が正常に完了しました。")
         
         # モデル評価を実行
         try:
-            results = evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline)
-            print("モデル評価が正常に完了しました。")
-            print(f"評価サンプル数: {len(results['model_predictions'])}")
+            results = evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline, max_samples=50)
+            logger.info("✅ モデル評価が正常に完了しました。")
+            logger.info(f"評価サンプル数: {len(results['model_predictions'])}")
+            
+            # 結果の要約
+            logger.info("=== テスト実行結果 ===")
+            logger.info(f"学習データ: 100件")
+            logger.info(f"検証データ: 25件")
+            logger.info(f"テストデータ: 50件")
+            logger.info("✅ Phase 1完了！100件でのテスト実行が正常に終了しました。")
+            logger.info("📝 次のステップ: 5000件での本格実行に進む場合は、max_samplesを5000に変更してください。")
+            
         except Exception as e:
-            print(f"モデル評価エラー: {e}")
+            logger.error(f"モデル評価エラー: {e}")
             
     except Exception as e:
-        print(f"ファインチューニングエラー: {e}")
+        logger.error(f"ファインチューニングエラー: {e}")
         import traceback
-        print("詳細なエラー情報:")
-        traceback.print_exc()
-        print("LLMベースの評価システムを使用します。")
+        logger.error("詳細なエラー情報:")
+        logger.error(traceback.format_exc())
+        logger.info("LLMベースの評価システムを使用します。")
+
+# Phase 2: 5000件での本格実行用設定
+# 以下の行のコメントを外して、max_samplesを5000に変更してください
+# trainer, tokenizer = run_supervised_finetuning(tokenizer, model, llm_pipeline, train_data, valid_data, max_samples=5000)
+# results = evaluate_finetuned_model(trainer, tokenizer, test_data, llm_pipeline, max_samples=500)
 
 if __name__ == "__main__":
     main()
