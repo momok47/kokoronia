@@ -1,0 +1,8 @@
+# OpenAI API設定
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Google Cloud設定（既存のGCSサービスで使用）
+GOOGLE_APPLICATION_CREDENTIALS=credentials/my-project-shirakawa-452105-1d7701f94540.json
+
+# その他のAPI設定（必要に応じて）
+# WANDB_API_KEY=your-wandb-api-key-here
