@@ -247,16 +247,20 @@ kiwisolver==1.4.8
     # via matplotlib
 lxml==6.0.0
     # via blobfile
+markdown-it-py==4.0.0
+    # via rich
 markupsafe==3.0.2
     # via flask
     # via jinja2
     # via werkzeug
-matplotlib==3.10.3
+matplotlib==3.10.6
     # via japanize-matplotlib
     # via lounge
 matplotlib-inline==0.1.7
     # via ipykernel
     # via ipython
+mdurl==0.1.2
+    # via markdown-it-py
 mecab==0.996.11
     # via lounge
 mecab-python3==1.0.10
@@ -305,7 +309,7 @@ numpy==2.3.1
     # via scipy
     # via sox
     # via transformers
-openai==1.101.0
+openai==1.102.0
     # via lounge
 orjson==3.10.18
     # via dwave-cloud-client
@@ -360,6 +364,7 @@ protobuf==6.31.1
 psutil==7.0.0
     # via accelerate
     # via ipykernel
+    # via lounge
     # via peft
 ptyprocess==0.7.0
     # via pexpect
@@ -387,6 +392,7 @@ pydantic-core==2.33.2
 pygments==2.19.2
     # via ipython
     # via ipython-pygments-lexers
+    # via rich
 pyparsing==3.2.3
     # via matplotlib
 pysocks==1.7.1
@@ -424,6 +430,8 @@ requests==2.32.4
     # via transformers
     # via unidic
     # via wandb
+rich==14.1.0
+    # via lounge
 rsa==4.9.1
     # via google-auth
 safetensors==0.5.3

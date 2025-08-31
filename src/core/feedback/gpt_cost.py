@@ -5,6 +5,13 @@ import tiktoken
 # ===== 設定 =====
 ds = load_dataset("UEC-InabaLab/KokoroChat", split="train")
 
+# 現在のコード設定
+CURRENT_MAX_SAMPLES = 1500          # 現在使用するサンプル数
+CURRENT_BATCH_SPLIT_SIZE = 300      # バッチ分割サイズ
+CURRENT_EPOCHS = 70                 # エポック数
+CURRENT_BATCH_SIZE = 16             # 学習用バッチサイズ
+CURRENT_MAX_TOKENS = 12000          # 最大トークン数制限
+CURRENT_MAX_MESSAGES = 250          # 最大メッセージ数制限
 
 USD_TO_JPY = 146.82
 TRAIN_USD_PER_M = 0.40     # 学習: $0.40 / 1M tok (推論入力価格を使用)
@@ -13,24 +20,44 @@ OUT_USD_PER_M = 1.60       # 推論 出力: $1.60 / 1M tok
 
 # ===== トークナイザー =====
 try:
-    enc = tiktoken.encoding_for_model("gpt-4.1-mini")
+    enc = tiktoken.encoding_for_model("gpt-4o-mini")  # 現在使用するモデル
 except Exception:
     enc = tiktoken.get_encoding("cl100k_base")
 
-# ===== 時刻は使わない。dialogue内のutteranceだけ数える =====
-def count_tokens(batch):
+# ===== 現在の設定でのコスト計算 =====
+def count_tokens_with_limits(batch):
+    """制限付きでトークンをカウント"""
     total_tokens_per_sample = []
     for dialogue in batch["dialogue"]:
         sample_tokens = 0
+        message_count = 0
+        
         for turn in dialogue:
             if "utterance" in turn and isinstance(turn["utterance"], str):
-                sample_tokens += len(enc.encode(turn["utterance"]))
+                message_count += 1
+                if message_count > CURRENT_MAX_MESSAGES:
+                    break
+                    
+                utterance_tokens = len(enc.encode(turn["utterance"]))
+                if sample_tokens + utterance_tokens > CURRENT_MAX_TOKENS:
+                    break
+                    
+                sample_tokens += utterance_tokens
+        
         total_tokens_per_sample.append(sample_tokens)
     return {"n_tokens": total_tokens_per_sample}
 
-tok_ds = ds.map(count_tokens, batched=True, batch_size=1000, desc="Tokenizing utterances")
+# 制限付きでトークンカウント
+tok_ds = ds.map(count_tokens_with_limits, batched=True, batch_size=1000, desc="制限付きトークンカウント")
+
+# 現在の設定でのサンプル数制限
+limited_ds = tok_ds.select(range(min(CURRENT_MAX_SAMPLES, len(tok_ds))))
+limited_tokens = int(sum(limited_ds["n_tokens"]))
+limited_mtok = limited_tokens / 1_000_000
+
+# 元のデータセット全体
 total_tokens = int(sum(tok_ds["n_tokens"]))
-mtok = total_tokens / 1_000_000
+total_mtok = total_tokens / 1_000_000
 
 # ===== 円換算 =====
 train_jpy_per_m = TRAIN_USD_PER_M * USD_TO_JPY
@@ -39,49 +66,92 @@ out_jpy_per_m = OUT_USD_PER_M * USD_TO_JPY
 
 def yen(x): return int(round(x))
 
-print(f"===== KokoroNiaデータセット全体のコスト計算 =====")
-print(f"データセット: KokoroChat ({len(ds):,}件の会話データ)")
-print(f"総トークン数（時刻無視）: {total_tokens:,} tokens ({mtok:.2f}M)")
-print(f"※これは全{len(ds):,}件の会話データ全体を入力として利用した場合のトークン数です")
+print(f"===== 現在のコード設定でのコスト計算 =====")
+print(f"設定:")
+print(f"  - 最大サンプル数: {CURRENT_MAX_SAMPLES:,}")
+print(f"  - バッチ分割サイズ: {CURRENT_BATCH_SPLIT_SIZE:,}")
+print(f"  - エポック数: {CURRENT_EPOCHS}")
+print(f"  - 学習用バッチサイズ: {CURRENT_BATCH_SIZE}")
+print(f"  - 最大トークン数: {CURRENT_MAX_TOKENS:,}")
+print(f"  - 最大メッセージ数: {CURRENT_MAX_MESSAGES:,}")
 print(f"")
-print(f"学習コスト: 1ep={yen(mtok*train_jpy_per_m):,}円  2ep={yen(mtok*train_jpy_per_m*2):,}円  "
-      f"3ep={yen(mtok*train_jpy_per_m*3):,}円  4ep={yen(mtok*train_jpy_per_m*4):,}円")
-print(f"推論単価: 入力 {yen(in_jpy_per_m):,}円/100万tok, 出力 {yen(out_jpy_per_m):,}円/100万tok")
 
-# ===== エポック数10、バッチサイズ128の場合のAPIコスト計算 =====
-epochs = 10
-batch_size = 128
+print(f"===== データセット情報 =====")
+print(f"元データセット: KokoroChat ({len(ds):,}件の会話データ)")
+print(f"制限適用後: {len(limited_ds):,}件の会話データ")
+print(f"使用率: {len(limited_ds)/len(ds)*100:.1f}%")
+print(f"")
 
-# 学習コスト（エポック数10）
-training_cost_10ep = yen(mtok * train_jpy_per_m * epochs)
+print(f"===== トークン数情報 =====")
+print(f"元データセット総トークン数: {total_tokens:,} tokens ({total_mtok:.2f}M)")
+print(f"制限適用後総トークン数: {limited_tokens:,} tokens ({limited_mtok:.2f}M)")
+print(f"トークン数使用率: {limited_tokens/total_tokens*100:.1f}%")
+print(f"")
 
-# データセットサイズを推定（総サンプル数）
-# バッチサイズ128でのバッチ数を計算するため、データセット長を取得
-dataset_size = len(ds)
-batches_per_epoch = (dataset_size + batch_size - 1) // batch_size  # 切り上げ
-total_batches = batches_per_epoch * epochs
+# ===== バッチ分割でのコスト計算 =====
+batches = []
+for i in range(0, len(limited_ds), CURRENT_BATCH_SPLIT_SIZE):
+    end_idx = min(i + CURRENT_BATCH_SPLIT_SIZE, len(limited_ds))
+    batch_samples = limited_ds.select(range(i, end_idx))
+    batch_tokens = int(sum(batch_samples["n_tokens"]))
+    batch_mtok = batch_tokens / 1_000_000
+    
+    batches.append({
+        'batch_id': len(batches) + 1,
+        'samples': len(batch_samples),
+        'tokens': batch_tokens,
+        'mtok': batch_mtok
+    })
 
-print(f"\n===== エポック数10、バッチサイズ128の場合 =====")
-print(f"データセットサイズ: {dataset_size:,} サンプル")
-print(f"バッチサイズ: {batch_size}")
-print(f"1エポックあたりのバッチ数: {batches_per_epoch:,}")
-print(f"総バッチ数（{epochs}エポック）: {total_batches:,}")
-print(f"学習コスト（{epochs}エポック）: {training_cost_10ep:,}円")
+print(f"===== バッチ分割情報 =====")
+print(f"総バッチ数: {len(batches)}")
+for batch in batches:
+    print(f"バッチ {batch['batch_id']}: {batch['samples']:,}サンプル, {batch['tokens']:,}トークン ({batch['mtok']:.2f}M)")
 
-# 推論コストの参考値（入力・出力の比率を仮定）
-# 一般的に出力は入力の10-20%程度と仮定
+# ===== 学習コスト計算 =====
+print(f"\n===== 学習コスト計算 =====")
+print(f"各バッチの学習コスト（{CURRENT_EPOCHS}エポック）:")
+
+total_training_cost = 0
+for batch in batches:
+    batch_cost = yen(batch['mtok'] * train_jpy_per_m * CURRENT_EPOCHS)
+    total_training_cost += batch_cost
+    print(f"バッチ {batch['batch_id']}: {batch_cost:,}円")
+
+print(f"総学習コスト: {total_training_cost:,}円")
+
+# ===== 推論コスト計算 =====
+print(f"\n===== 推論コスト計算 =====")
 inference_input_ratio = 1.0   # 入力トークン比率
 inference_output_ratio = 0.15 # 出力トークン比率（入力の15%と仮定）
 
-inference_input_cost = yen(mtok * in_jpy_per_m * inference_input_ratio)
-inference_output_cost = yen(mtok * out_jpy_per_m * inference_output_ratio)
+inference_input_cost = yen(limited_mtok * in_jpy_per_m * inference_input_ratio)
+inference_output_cost = yen(limited_mtok * out_jpy_per_m * inference_output_ratio)
 total_inference_cost = inference_input_cost + inference_output_cost
 
-print(f"推論コスト参考値（入力:{inference_input_cost:,}円 + 出力:{inference_output_cost:,}円）: {total_inference_cost:,}円")
+print(f"推論コスト参考値:")
+print(f"  入力: {inference_input_cost:,}円")
+print(f"  出力: {inference_output_cost:,}円")
+print(f"  合計: {total_inference_cost:,}円")
 
 # ===== 総コスト計算 =====
-total_cost = training_cost_10ep + total_inference_cost
+total_cost = total_training_cost + total_inference_cost
 print(f"\n===== 総コスト =====")
-print(f"学習コスト（10エポック）: {training_cost_10ep:,}円")
+print(f"学習コスト: {total_training_cost:,}円")
 print(f"推論コスト: {total_inference_cost:,}円")
 print(f"総コスト: {total_cost:,}円")
+
+# ===== 従来の方法との比較 =====
+print(f"\n===== 従来の方法との比較 =====")
+print(f"従来（全データ使用）:")
+print(f"  学習コスト（{CURRENT_EPOCHS}エポック）: {yen(total_mtok * train_jpy_per_m * CURRENT_EPOCHS):,}円")
+print(f"  推論コスト: {yen(total_mtok * (in_jpy_per_m + out_jpy_per_m * inference_output_ratio)):,}円")
+print(f"  総コスト: {yen(total_mtok * (train_jpy_per_m * CURRENT_EPOCHS + in_jpy_per_m + out_jpy_per_m * inference_output_ratio)):,}円")
+
+print(f"\n現在の方法（制限適用）:")
+print(f"  学習コスト（{CURRENT_EPOCHS}エポック）: {total_training_cost:,}円")
+print(f"  推論コスト: {total_inference_cost:,}円")
+print(f"  総コスト: {total_cost:,}円")
+
+cost_reduction = (1 - total_cost / (total_mtok * (train_jpy_per_m * CURRENT_EPOCHS + in_jpy_per_m + out_jpy_per_m * inference_output_ratio))) * 100
+print(f"\nコスト削減率: {cost_reduction:.1f}%")

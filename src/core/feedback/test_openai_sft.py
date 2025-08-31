@@ -33,28 +33,40 @@ def test_data_preparation():
         os.environ["OPENAI_API_KEY"] = "test-key-for-data-prep-only"
         sft = OpenAISFT()
         
-        # 小規模データでテスト
-        logger.info("小規模データセット（10サンプル）を準備中...")
-        training_data = sft.prepare_dataset(max_samples=10)
+        # 小規模データでテスト（8:1:1分割）
+        logger.info("小規模データセット（30サンプル）を8:1:1に分割中...")
+        train_dataset, test_dataset, valid_dataset = sft.load_and_split_dataset(max_samples=30, seed=42)
         
-        logger.info(f"準備されたサンプル数: {len(training_data)}")
+        # 各データセットを準備
+        train_data = sft.prepare_dataset(train_dataset, "train")
+        test_data = sft.prepare_dataset(test_dataset, "test")
+        valid_data = sft.prepare_dataset(valid_dataset, "valid")
+        
+        logger.info(f"準備されたサンプル数: Train={len(train_data)}, Test={len(test_data)}, Valid={len(valid_data)}")
+        
+        # 分割比率の確認
+        total = len(train_data) + len(test_data) + len(valid_data)
+        train_ratio = len(train_data) / total * 100
+        test_ratio = len(test_data) / total * 100 
+        valid_ratio = len(valid_data) / total * 100
+        logger.info(f"分割比率: Train={train_ratio:.1f}%, Test={test_ratio:.1f}%, Valid={valid_ratio:.1f}%")
         
         # 最初のサンプルを表示
-        if training_data:
-            logger.info("=== 最初のサンプル ===")
-            first_sample = training_data[0]
+        if train_data:
+            logger.info("=== 最初のトレーニングサンプル ===")
+            first_sample = train_data[0]
             for i, message in enumerate(first_sample["messages"][:3]):  # 最初の3メッセージのみ表示
                 logger.info(f"  {i+1}. {message['role']}: {message['content'][:100]}...")
         
         # データ保存テスト
-        logger.info("データ保存テスト中...")
-        training_file = sft.save_training_data(training_data, "test_training_data.jsonl")
-        logger.info(f"テストデータを保存: {training_file}")
+        logger.info("全データセット保存テスト中...")
+        filepaths = sft.save_all_datasets(train_data, test_data, valid_data, "test_20250101_120000")
         
         # ファイル内容の確認
-        with open(training_file, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            logger.info(f"保存されたJSONL行数: {len(lines)}")
+        for dataset_type, filepath in filepaths.items():
+            with open(filepath, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                logger.info(f"{dataset_type}データ保存: {filepath} ({len(lines)}行)")
         
         logger.info("=== データ準備テスト完了 ✅ ===")
         return True
