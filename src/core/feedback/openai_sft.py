@@ -382,9 +382,33 @@ class OpenAISFT:
                     if len(messages) < len(dialogue):
                         removed_utterances += 1
                     
-                    training_data.append({
+                    # 正解スコアとメタデータを保持
+                    training_sample = {
                         "messages": messages
-                    })
+                    }
+                    
+                    # review_by_client_jpを保持（正解スコア用）
+                    if 'review_by_client_jp' in example:
+                        training_sample['review_by_client_jp'] = example['review_by_client_jp']
+                    
+                    # review_by_client_enを保持
+                    if 'review_by_client_en' in example:
+                        training_sample['review_by_client_en'] = example['review_by_client_en']
+                    
+                    # topicを保持
+                    if 'topic' in example:
+                        training_sample['topic'] = example['topic']
+                    
+                    # dialogueの元の構造も保持（必要に応じて）
+                    if 'dialogue' in example:
+                        training_sample['dialogue'] = example['dialogue']
+                    
+                    # その他の重要なメタデータを保持
+                    for key in ['metadata', 'annotation', 'label', 'ground_truth']:
+                        if key in example:
+                            training_sample[key] = example[key]
+                    
+                    training_data.append(training_sample)
                 
                 if (i + 1) % 1000 == 0:
                     logger.info(f"処理済み: {i + 1}/{len(dataset)}")
@@ -395,6 +419,17 @@ class OpenAISFT:
                 continue
         
         logger.info(f"{dataset_type}データ準備完了: {len(training_data)}サンプル (スキップ: {skipped})")
+        
+        # 正解スコアの保持状況を確認
+        samples_with_scores = sum(1 for item in training_data if 'review_by_client_jp' in item)
+        logger.info(f"正解スコア付きサンプル: {samples_with_scores}/{len(training_data)}")
+        
+        if samples_with_scores == 0:
+            logger.warning("⚠️  正解スコアが保持されていません！")
+            logger.warning("  データ変換の修正が必要です")
+        else:
+            logger.info(f"✅ 正解スコアが正常に保持されています")
+        
         return training_data
     
     def _create_evaluation_training_data(self, example: Dict) -> List[Dict[str, Any]]:
@@ -638,9 +673,26 @@ class OpenAISFT:
         
         return "\n".join(dialogue_lines)
     
+    def _serialize_for_json(self, obj):
+        """JSONシリアライゼーション用のオブジェクト変換"""
+        import datetime
+        
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.date):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.time):
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: self._serialize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._serialize_for_json(item) for item in obj]
+        else:
+            return obj
+
     def save_training_data(self, training_data: List[Dict], filename: str = None, dataset_type: str = "train") -> str:
         """
-        トレーニングデータをJSONLファイルとして保存
+        トレーニングデータをJSONLファイルとして保存（正解スコア付き）
         
         Args:
             training_data: トレーニングデータ
@@ -658,10 +710,24 @@ class OpenAISFT:
         
         with open(filepath, 'w', encoding='utf-8') as f:
             for item in training_data:
-                json.dump(item, f, ensure_ascii=False)
+                # JSONシリアライゼーション用にオブジェクトを変換
+                serialized_item = self._serialize_for_json(item)
+                json.dump(serialized_item, f, ensure_ascii=False)
                 f.write('\n')
         
         logger.info(f"{dataset_type}データを保存: {filepath}")
+        
+        # 保存されたデータの構造を確認
+        if training_data:
+            first_item = training_data[0]
+            keys = list(first_item.keys())
+            logger.info(f"保存されたデータの構造: {keys}")
+            
+            if 'review_by_client_jp' in keys:
+                logger.info("✅ 正解スコア（review_by_client_jp）が正常に保存されています")
+            else:
+                logger.warning("⚠️  正解スコアが保存されていません")
+        
         return str(filepath)
     
     def save_all_datasets(self, train_data: List[Dict], test_data: List[Dict], valid_data: List[Dict], 
@@ -738,7 +804,11 @@ class OpenAISFT:
         
         response = self.client.fine_tuning.jobs.create(
             training_file=training_file_id,
-            model="gpt-4o-mini-2024-07-18"
+            model="gpt-4o-mini-2024-07-18",
+            hyperparameters={
+                "n_epochs": epochs
+            },
+            learning_rate_multiplier=0.1  # 学習率を0.1倍に設定
         )
         
         job_id = response.id
@@ -1389,7 +1459,11 @@ print(response.choices[0].message.content)
         try:
             response = self.client.fine_tuning.jobs.create(
                 training_file=training_file_id,
-                model="gpt-4o-mini-2024-07-18"
+                model="gpt-4o-mini-2024-07-18",
+                hyperparameters={
+                    "n_epochs": "auto",
+                    "learning_rate_multiplier": 0.1  # 学習率を0.1倍に設定
+                }
             )
             
             job_id = response.id
@@ -1680,11 +1754,12 @@ def main():
         # 中規模設定で実行（クォータ制限内で最大限）
         logger.info("=== 中規模設定でバッチ分割ファインチューニングを実行します ===")
         sft.run_batch_pipeline(
-            epochs=70,                      # 70エポック（13,000円目標）
-            max_samples=1500,               # 1,500サンプル（13,000円目標）
-            batch_split_size=300,           # 300サンプル/バッチ（13,000円目標）
-            max_tokens_per_sample=12000,    # 12Kトークン（13,000円目標）
-            max_messages_per_dialogue=250   # 250メッセージ（13,000円目標）
+            epochs=70,                       # 70エポック（前回成功した設定）
+            max_samples=1500,                # 1,500サンプル（前回成功した設定）
+            batch_split_size=300,            # 300サンプル/バッチ（前回成功した設定）
+            max_tokens_per_sample=12000,     # 12Kトークン（前回成功した設定）
+            max_messages_per_dialogue=250,   # 250メッセージ（前回成功した設定）
+            seed=42                          # 元のランダムシード（再現性確保）
         )
         
     except ValueError as e:
