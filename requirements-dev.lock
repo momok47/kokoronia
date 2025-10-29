@@ -61,8 +61,12 @@ click==8.2.1
     # via wandb
 comm==0.2.2
     # via ipykernel
+contourpy==1.3.3
+    # via matplotlib
 cryptography==45.0.5
     # via authlib
+cycler==0.12.1
+    # via matplotlib
 datasets==4.0.0
     # via lounge
     # via trl
@@ -140,6 +144,8 @@ filelock==3.18.0
     # via transformers
 flask==3.1.1
     # via dwave-inspector
+fonttools==4.60.1
+    # via matplotlib
 frozenlist==1.7.0
     # via aiohttp
     # via aiosignal
@@ -221,6 +227,8 @@ ipython-pygments-lexers==1.1.1
     # via ipython
 itsdangerous==2.2.0
     # via flask
+japanize-matplotlib==1.1.3
+    # via lounge
 jedi==0.19.2
     # via ipython
 jinja2==3.1.6
@@ -235,6 +243,8 @@ jupyter-client==8.6.3
 jupyter-core==5.8.1
     # via ipykernel
     # via jupyter-client
+kiwisolver==1.4.9
+    # via matplotlib
 lxml==6.0.0
     # via blobfile
 markdown-it-py==4.0.0
@@ -243,6 +253,10 @@ markupsafe==3.0.2
     # via flask
     # via jinja2
     # via werkzeug
+matplotlib==3.10.6
+    # via japanize-matplotlib
+    # via lounge
+    # via seaborn
 matplotlib-inline==0.1.7
     # via ipykernel
     # via ipython
@@ -275,6 +289,7 @@ networkx==3.5
     # via torch
 numpy==2.3.1
     # via accelerate
+    # via contourpy
     # via datasets
     # via dimod
     # via dwave-gate
@@ -286,12 +301,14 @@ numpy==2.3.1
     # via dwave-samplers
     # via dwave-system
     # via lounge
+    # via matplotlib
     # via minorminer
     # via pandas
     # via peft
     # via penaltymodel
     # via scikit-learn
     # via scipy
+    # via seaborn
     # via sox
     # via transformers
 openai==1.102.0
@@ -305,12 +322,14 @@ packaging==25.0
     # via dwave-cloud-client
     # via huggingface-hub
     # via ipykernel
+    # via matplotlib
     # via peft
     # via transformers
     # via wandb
 pandas==2.3.1
     # via datasets
     # via lounge
+    # via seaborn
 parso==0.8.4
     # via jedi
 peft==0.17.0
@@ -320,6 +339,8 @@ penaltymodel==1.2.0
     # via dwavebinarycsp
 pexpect==4.9.0
     # via ipython
+pillow==11.3.0
+    # via matplotlib
 plac==1.4.5
     # via unidic
 platformdirs==4.3.8
@@ -375,11 +396,14 @@ pygments==2.19.2
     # via ipython
     # via ipython-pygments-lexers
     # via rich
+pyparsing==3.2.5
+    # via matplotlib
 pysocks==1.7.1
     # via requests
 python-dateutil==2.9.0.post0
     # via dwave-cloud-client
     # via jupyter-client
+    # via matplotlib
     # via pandas
 python-dotenv==1.1.1
     # via lounge
@@ -425,6 +449,8 @@ scipy==1.16.0
     # via minorminer
     # via penaltymodel
     # via scikit-learn
+seaborn==0.13.2
+    # via lounge
 sentencepiece==0.2.0
     # via lounge
 sentry-sdk==2.33.2
