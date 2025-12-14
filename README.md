@@ -91,6 +91,42 @@ python manage.py runserver
 
 ---
 
+## 🐳 Docker / Compose ワークフロー
+
+### ローカルでの起動
+
+1. `.env` に `DJANGO_SECRET_KEY` や `POSTGRES_*`（DB名/ユーザー/パスワード）を設定します。`DATABASE_URL` を指定しない場合は `postgres://lounge:lounge@db:5432/lounge` が自動で使われます。
+2. DB を起動  
+   ```bash
+   docker compose up -d db
+   ```
+3. Django アプリをビルド&起動  
+   ```bash
+   docker compose up --build web
+   ```
+   `WEB_PORT`（デフォルト 8000）を変えればホストの公開ポートを調整できます。
+
+### マイグレーションと初期データ
+
+- スキーマ反映  
+  ```bash
+  docker compose run --rm web python src/webapp/manage.py migrate
+  ```
+- 管理ユーザー作成など初期データ投入  
+  ```bash
+  docker compose run --rm web python src/webapp/manage.py createsuperuser
+  ```
+  これらのコマンドは常に `db` サービス（または外部DB）に接続して実行されます。
+
+### 本番でマネージド DB を使う場合
+
+1. Cloud SQL / RDS などに Postgres（または互換 DB）を用意し、接続文字列 `postgres://<user>:<pass>@<host>:<port>/<db>` を取得します。
+2. `.env` の `DATABASE_URL` をその文字列に置き換え、`docker compose` では `db` サービスを起動せず `web` のみをデプロイします。
+3. SSL が必要な環境では `DB_SSL_REQUIRE=true` を設定して再起動してください。
+4. マイグレーションや `createsuperuser` は同じく `docker compose run --rm web ...` で外部 DB に向けて実行できます。
+
+---
+
 ## 📝 更新履歴
 
 - 2024/07: UIを全面リニューアル。色・文言・アイコン・ボタン配置を刷新。
