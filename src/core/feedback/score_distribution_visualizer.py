@@ -15,6 +15,7 @@ from typing import Dict, List, Any, Tuple
 import logging
 from datetime import datetime
 import re
+from collections import defaultdict
 
 # 日本語フォント設定
 plt.rcParams['font.family'] = ['DejaVu Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Takao', 'IPAexGothic', 'IPAPGothic', 'VL PGothic', 'Noto Sans CJK JP']

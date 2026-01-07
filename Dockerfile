@@ -1,11 +1,7 @@
 FROM python:3.13-slim
 
-ARG RYE_VERSION="0.44.0"
-
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    RYE_HOME=/opt/rye \
-    PATH="/opt/rye/shims:/opt/rye/bin:${PATH}" \
     PYTHONPATH=/app/src \
     DJANGO_SETTINGS_MODULE=project.settings
 
@@ -15,13 +11,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     libpq-dev \
+    portaudio19-dev \
+    pkg-config \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSf https://rye-up.com/install.sh | RYE_HOME=${RYE_HOME} RYE_VERSION=${RYE_VERSION} bash -s -- -y
+COPY pyproject.toml requirements.lock requirements-dev.lock README.md /app/
 
-COPY pyproject.toml requirements.lock requirements-dev.lock /app/
+# パッケージ本体を先に配置しておくことで `-e file:.` を解決
+COPY src /app/src
 
-RUN rye sync --no-dev --toolchain=cpython@3.13
+RUN pip install --no-cache-dir -r requirements.lock
 
 COPY . /app
 
