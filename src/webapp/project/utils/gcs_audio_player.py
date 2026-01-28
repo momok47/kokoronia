@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, UTC
 # バケット名を定数として定義
 BUCKET_NAME = "kokoronia"
 AUDIO_DIR = "media/audio"
-# サービスアカウントの秘密鍵ファイルのパス
-SERVICE_ACCOUNT_KEY = "/Users/shirakawamomoko/Desktop/lounge/my-project-shirakawa-452105-584130d6700b.json"
+# サービスアカウントの秘密鍵ファイルのパス（環境変数で指定）
+SERVICE_ACCOUNT_KEY = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 
 def play_gcs_audio(
     bucket_name,
@@ -26,6 +26,9 @@ def play_gcs_audio(
     """
     print(f"GCSの音声ファイル{blob_name.split("/")[-1]}をブラウザで再生します")
     try:
+        if not SERVICE_ACCOUNT_KEY:
+            raise EnvironmentError("GOOGLE_APPLICATION_CREDENTIALS が設定されていません。")
+
         # ストレージクライアント(GCSと通信するためのインターフェース)作成
         client = storage.Client.from_service_account_json(SERVICE_ACCOUNT_KEY)
         bucket = client.bucket(bucket_name)

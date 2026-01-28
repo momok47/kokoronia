@@ -28,12 +28,18 @@ load_dotenv(env_path)
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-88@e&*$-6-)sxm+qc_+7!l-a&8v65_*aft45(k0n1x@@crv!$0')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY が設定されていません。.env か環境変数で設定してください。")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -52,10 +58,16 @@ INSTALLED_APPS = [
     'drf_spectacular'
 ]
 
-API_KEY = os.environ.get('API_KEY', 'dev-api-key')
+API_KEY = os.environ.get('API_KEY')
+JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+JWT_ISSUER = os.environ.get('JWT_ISSUER')
+JWT_AUDIENCE = os.environ.get('JWT_AUDIENCE')
+JWT_LEEWAY_SECONDS = int(os.environ.get('JWT_LEEWAY_SECONDS', '30'))
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'api.jwt_authentication.JwtAuthentication',
         'api.authentication.ApiKeyAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [

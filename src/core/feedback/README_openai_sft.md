@@ -28,7 +28,7 @@ pip install openai datasets tiktoken psutil tqdm
 
 ### 2. OpenAI APIキーの設定
 
-プロジェクトルートに`.env`ファイルを作成（推奨）：
+プロジェクトルートに`.env`ファイルを作成（`.env.example`をコピーすると安全です）：
 
 ```bash
 # プロジェクトルートに.envファイルを作成
@@ -41,7 +41,7 @@ echo "OPENAI_API_KEY=your-api-key-here" > .env
 OPENAI_API_KEY=your-openai-api-key-here
 
 # Google Cloud設定（既存のGCSサービスで使用）
-GOOGLE_APPLICATION_CREDENTIALS=credentials/my-project-shirakawa-452105-1d7701f94540.json
+GOOGLE_APPLICATION_CREDENTIALS=credentials/your-service-account.json
 ```
 
 または、環境変数として設定：

@@ -14,6 +14,7 @@ from .serializers import (
     TopicSuggestResponseSerializer,
     UserSerializer,
 )
+from .permissions import TopicsReadPermission, TopicsWritePermission
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -30,6 +31,8 @@ class TopicExtractView(APIView):
     会話ログから話題候補を抽出するエンドポイント。
     実運用ではコア分析ロジックを呼び出す。ここでは軽いダミー処理。
     """
+
+    permission_classes = [TopicsReadPermission]
 
     def post(self, request):
         req = TopicExtractRequestSerializer(data=request.data)
@@ -59,6 +62,8 @@ class TopicSuggestView(APIView):
     """
     会話ログとヒントから具体的な話題提案を返すエンドポイント。
     """
+
+    permission_classes = [TopicsWritePermission]
 
     def post(self, request):
         req = TopicSuggestRequestSerializer(data=request.data)

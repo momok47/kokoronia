@@ -78,7 +78,11 @@ def analyze_transcription(transcription_blob_name, speaker_tag_override=None):
         else:
             topic_labels = english_labels
         
-        unidic_path = os.getenv("UNIDIC_PATH", '/Users/shirakawamomoko/Desktop/electronic_dictionary/unidic-csj-202302')
+        unidic_path = (
+            os.getenv("UNIDIC_PATH")
+            or os.getenv("MECAB_DIC_PATH")
+            or "/path/to/unidic"
+        )
         
         # ZeroShotLearningクラスの初期化（新しいAPI）
         topic_analyzer = ZeroShotLearning(

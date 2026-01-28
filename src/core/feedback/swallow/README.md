@@ -129,4 +129,4 @@ python3 -m tensorboard.main --logdir=./logs_tensorboard
 - `swallow_emotion_reward_adapter/` - 学習済みモデル
 - `regression_dataset_real_labels.jsonl` - データキャッシュ
 - `start_tensorboard.sh` - TensorBoard起動スクリプト
-- `.env.template` - 環境変数テンプレート
+- `.env.example` - 環境変数テンプレート

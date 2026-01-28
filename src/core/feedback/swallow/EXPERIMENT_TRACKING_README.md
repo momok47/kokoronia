@@ -36,7 +36,7 @@ python3 emotion_reward_sft.py
 
 ```bash
 # .env ファイルを作成
-cp .env.template .env
+cp .env.example .env
 
 # .env ファイルを編集
 export EXPERIMENT_TRACKING_TOOL=both  # "tensorboard", "wandb", "both", "none"

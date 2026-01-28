@@ -7,6 +7,7 @@ import sys
 import logging
 
 logger = logging.getLogger(__name__)
+FEEDBACK_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 def install_experiment_tools():
     """実験管理ツールのインストール"""
@@ -57,7 +58,7 @@ echo "ブラウザで http://localhost:6006 を開いてください"
 tensorboard --logdir=$LOG_DIR --port=6006 --host=0.0.0.0
 '''
     
-    script_path = "/Users/shirakawamomoko/Desktop/lounge/src/core/feedback/start_tensorboard.sh"
+    script_path = os.path.join(FEEDBACK_DIR, "start_tensorboard.sh")
     with open(script_path, 'w', encoding='utf-8') as f:
         f.write(script_content)
     
@@ -85,11 +86,13 @@ TENSORBOARD_LOG_DIR=./logs_tensorboard
 EXPERIMENT_NAME=emotion_sft_experiment
 '''
     
-    env_path = "/Users/shirakawamomoko/Desktop/lounge/src/core/feedback/.env.template"
-    with open(env_path, 'w', encoding='utf-8') as f:
-        f.write(env_content)
-    
-    print("環境変数設定テンプレートを作成しました: {}".format(env_path))
+    env_path = os.path.join(FEEDBACK_DIR, ".env.example")
+    if not os.path.exists(env_path):
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.write(env_content)
+        print("環境変数設定テンプレートを作成しました: {}".format(env_path))
+    else:
+        print("環境変数設定テンプレートは既に存在します: {}".format(env_path))
 
 def main():
     """メイン処理"""
@@ -110,7 +113,7 @@ def main():
     
     print("\n=== セットアップ完了 ===")
     print("実験を開始する前に:")
-    print("1. .env.template をコピーして .env を作成し、設定を編集してください")
+    print("1. .env.example をコピーして .env を作成し、設定を編集してください")
     print("2. W&Bを使用する場合は 'wandb login' を実行してください")
     print("3. TensorBoardを使用する場合は './start_tensorboard.sh' を実行してください")
 
