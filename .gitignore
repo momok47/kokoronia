@@ -49,6 +49,7 @@ docs/
 recordings/
 media/
 staticfiles_tmp/
+openai_sft_outputs/
 *.wav
 *.mp3
 *.aac
