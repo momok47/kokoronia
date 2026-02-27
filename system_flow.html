@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lounge 現状アーキテクチャ図</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
+    }
+    .layer-title {
+      fill: #64748b;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .node {
+      transition: transform 0.2s ease;
+    }
+    .node:hover {
+      transform: translateY(-2px);
+    }
+    .node-title {
+      fill: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+    .node-sub {
+      fill: #ffffff;
+      font-size: 10px;
+      text-anchor: middle;
+    }
+    .node-title-dark {
+      fill: #334155;
+      font-size: 12px;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+    .node-sub-dark {
+      fill: #334155;
+      font-size: 10px;
+      text-anchor: middle;
+    }
+    .edge {
+      stroke: #94a3b8;
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+    .edge-future {
+      stroke: #94a3b8;
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 6 4;
+      marker-end: url(#arrowhead);
+    }
+    .edge-label-bg {
+      fill: #ffffff;
+      fill-opacity: 0.94;
+      rx: 4;
+    }
+    .edge-label {
+      fill: #475569;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .legend-title {
+      font-size: 13px;
+      font-weight: 700;
+      fill: #334155;
+    }
+    .legend-text {
+      font-size: 11px;
+      fill: #475569;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-7xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-sm p-6 md:p-8">
+    <header class="mb-6 text-center">
+      <h1 class="text-2xl md:text-3xl font-bold text-slate-800">lounge 現状アーキテクチャ図</h1>
+    </header>
+
+    <div class="overflow-x-auto">
+      <svg viewBox="0 0 1280 920" class="w-full h-auto min-w-[1100px]">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"></polygon>
+          </marker>
+        </defs>
+
+        <!-- Layer guides -->
+        <text x="40" y="40" class="layer-title">クライアント層</text>
+        <line x1="40" y1="49" x2="1240" y2="38" stroke="#e2e8f0" stroke-dasharray="4"></line>
+
+        <text x="40" y="145" class="layer-title">Web / API 層</text>
+        <line x1="40" y1="153" x2="1240" y2="153" stroke="#e2e8f0" stroke-dasharray="4"></line>
+
+        <text x="40" y="390" class="layer-title">データ処理層</text>
+        <line x1="40" y1="398" x2="1240" y2="398" stroke="#e2e8f0" stroke-dasharray="4"></line>
+
+        <text x="40" y="700" class="layer-title">データ保存 / 未実装層</text>
+        <line x1="40" y1="708" x2="1240" y2="708" stroke="#e2e8f0" stroke-dasharray="4"></line>
+
+        <!-- Nodes -->
+        <g class="node">
+          <rect x="560" y="0" width="160" height="46" rx="23" fill="#475569"></rect>
+          <text x="640" y="29" class="node-title">利用者</text>
+        </g>
+
+        <g class="node">
+          <rect x="530" y="70" width="220" height="58" rx="10" fill="#3b82f6"></rect>
+          <text x="640" y="95" class="node-title">Web画面</text>
+          <text x="640" y="115" class="node-sub">録音操作 / 進捗表示 / 結果確認</text>
+        </g>
+
+        <g class="node">
+          <rect x="530" y="185" width="220" height="58" rx="10" fill="#6366f1"></rect>
+          <text x="640" y="210" class="node-title">API受付</text>
+          <text x="640" y="230" class="node-sub">ルーティング / 入力検証</text>
+        </g>
+
+        <g class="node">
+          <rect x="160" y="285" width="230" height="68" rx="10" fill="#94a3b8"></rect>
+          <text x="275" y="312" class="node-title">API認証・認可</text>
+          <text x="275" y="333" class="node-sub">JWT / API-Key / Scope</text>
+        </g>
+
+        <g class="node">
+          <rect x="450" y="285" width="380" height="68" rx="10" fill="#10b981"></rect>
+          <text x="640" y="312" class="node-title">話題提案API</text>
+          <text x="640" y="333" class="node-sub">/api/v1/topics/suggest（現状は話題のみダミー提案）</text>
+        </g>
+
+        <g class="node">
+          <rect x="890" y="285" width="240" height="68" rx="10" fill="#f59e0b"></rect>
+          <text x="1010" y="312" class="node-title">録音処理API</text>
+          <text x="1010" y="333" class="node-sub">音声受信 / バッチ起動</text>
+        </g>
+
+        <g class="node">
+          <rect x="80" y="455" width="250" height="68" rx="10" fill="#64748b"></rect>
+          <text x="205" y="482" class="node-title">バッチ実行</text>
+          <text x="205" y="503" class="node-sub">main.pyに処理開始を指示</text>
+        </g>
+
+        <g class="node">
+          <rect x="470" y="440" width="220" height="62" rx="10" fill="#f59e0b"></rect>
+          <text x="580" y="465" class="node-title">文字起こし</text>
+          <text x="580" y="484" class="node-sub">Speech-to-Text API 呼び出し</text>
+        </g>
+
+        <g class="node">
+          <rect x="470" y="535" width="170" height="62" rx="10" fill="#f59e0b"></rect>
+          <text x="555" y="561" class="node-title">興味関心分析</text>
+          <text x="555" y="581" class="node-sub">Zero Shot Learning</text>
+        </g>
+
+        <g class="node">
+          <rect x="470" y="630" width="170" height="62" rx="10" fill="#f59e0b"></rect>
+          <text x="555" y="656" class="node-title">トピックスコア更新</text>
+          <text x="555" y="676" class="node-sub">best_topic / best_score</text>
+        </g>
+
+        <g class="node">
+          <rect x="790" y="445" width="300" height="68" rx="10" fill="#cbd5e1"></rect>
+          <text x="940" y="472" class="node-title-dark">Google Cloud Storage</text>
+          <text x="940" y="493" class="node-sub-dark">音声ファイル / 文字起こしJSON（GCS）</text>
+        </g>
+
+        <g class="node">
+          <rect x="80" y="565" width="260" height="68" rx="10" fill="#94a3b8"></rect>
+          <text x="210" y="592" class="node-title">ユーザー情報管理</text>
+          <text x="210" y="613" class="node-sub">accountsテーブル(ユーザー情報，トピックスコア)</text>
+        </g>
+
+        <g class="node">
+          <rect x="80" y="720" width="260" height="68" rx="10" fill="#475569"></rect>
+          <text x="210" y="747" class="node-title">データベース</text>
+          <text x="210" y="768" class="node-sub">SQLite (DATABASE_URLを設定すればPostgreSQL)</text>
+        </g>
+
+        <g class="node">
+          <rect x="860" y="720" width="300" height="68" rx="10" fill="none" stroke="#cbd5e1" stroke-width="2"></rect>
+          <text x="1010" y="748" class="node-title-dark">具体的な話題提案</text>
+          <text x="1010" y="768" class="node-sub-dark">未実装</text>
+        </g>
+
+        <!-- Edges -->
+        <path class="edge" d="M 640 46 L 640 70"></path>
+        <path class="edge" d="M 640 128 L 640 185"></path>
+        <path class="edge" d="M 640 243 L 640 265 L 275 265 L 275 285"></path>
+        <path class="edge" d="M 640 243 L 640 285"></path>
+        <path class="edge" d="M 640 243 L 640 265 L 1010 265 L 1010 285"></path>
+
+        <path class="edge" d="M 500 353 L 420 353 L 420 540 L 210 540 L 210 565"></path>
+        <path class="edge" d="M 210 633 L 210 720"></path>
+
+        <path class="edge" d="M 1010 353 L 1010 445"></path>
+        <path class="edge" d="M 930 353 L 930 420 L 580 420 L 580 440"></path>
+        <path class="edge" d="M 790 479 L 700 479 L 700 566 L 640 566"></path>
+
+        <path class="edge" d="M 555 502 L 555 535"></path>
+        <path class="edge" d="M 555 597 L 555 630"></path>
+
+        <!-- Adjusted path to avoid overlap with Batch node -->
+        <path class="edge" d="M 470 661 L 380 661 L 380 599 L 340 599"></path>
+
+        <!-- Batch path -->
+        <path class="edge" d="M 890 319 L 760 319 L 760 385 L 205 385 L 205 455"></path>
+        <path class="edge" d="M 330 489 L 400 489 L 400 471 L 470 471"></path>
+
+        <path class="edge-future" d="M 830 319 L 875 319 L 875 720 L 1010 720"></path>
+
+        <!-- Processing status back to UI -->
+        <path class="edge" d="M 970 285 L 970 120 L 750 120"></path>
+
+        <!-- Labels -->
+        <rect class="edge-label-bg" x="656" y="170" width="88" height="14"></rect>
+        <text class="edge-label" x="661" y="180">HTTP request</text>
+
+        <rect class="edge-label-bg" x="1016" y="382" width="210" height="14"></rect>
+        <text class="edge-label" x="1021" y="392">multipart: audio / participant / session</text>
+
+        <rect class="edge-label-bg" x="430" y="360" width="140" height="14"></rect>
+        <text class="edge-label" x="435" y="370">ユーザー存在確認（read）</text>
+
+        <rect class="edge-label-bg" x="708" y="557" width="108" height="14"></rect>
+        <text class="edge-label" x="713" y="567">transcription JSON</text>
+
+        <rect class="edge-label-bg" x="882" y="703" width="98" height="14"></rect>
+        <text class="edge-label" x="887" y="710">将来的に実装</text>
+
+        <rect class="edge-label-bg" x="780" y="126" width="150" height="14"></rect>
+        <text class="edge-label" x="785" y="136">進捗表示（run_main_script経路）</text>
+
+        <rect class="edge-label-bg" x="600" y="412" width="100" height="14"></rect>
+        <text class="edge-label" x="605" y="422">gs:// URIで認識実行</text>
+
+        <!-- Legend -->
+        <g transform="translate(40, 890)">
+          <text class="legend-title" x="0" y="0">凡例</text>
+          <line x1="55" y1="-5" x2="110" y2="-5" class="edge"></line>
+          <text class="legend-text" x="118" y="-2">現状稼働フロー</text>
+
+          <line x1="250" y1="-5" x2="305" y2="-5" class="edge-future"></line>
+          <text class="legend-text" x="313" y="-2">将来連携</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
