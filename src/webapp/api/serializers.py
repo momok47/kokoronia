@@ -57,18 +57,6 @@ class TopicSuggestionSerializer(serializers.Serializer):
     confidence = serializers.FloatField(required=False, min_value=0.0, max_value=1.0)
 
 
-class TopicExtractRequestSerializer(serializers.Serializer):
-    user_id = serializers.CharField()
-    conversation = MessageSerializer(many=True)
-    max_topics = serializers.IntegerField(required=False, min_value=1, max_value=20, default=5)
-
-
-class TopicExtractResponseSerializer(serializers.Serializer):
-    request_id = serializers.CharField()
-    created_at = serializers.DateTimeField()
-    topics = TopicSerializer(many=True)
-
-
 class TopicSuggestRequestSerializer(serializers.Serializer):
     user_id = serializers.CharField()
     conversation = MessageSerializer(many=True)

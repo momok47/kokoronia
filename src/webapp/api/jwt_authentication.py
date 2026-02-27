@@ -37,6 +37,10 @@ class JwtAuthentication(authentication.BaseAuthentication):
         user = JwtUser(decoded)
         return (user, decoded)
 
+    def authenticate_header(self, request) -> str:
+        # AuthenticationFailed を 401 で返すために必要
+        return "Bearer"
+
     def _decode_token(self, token: str) -> dict:
         alg = settings.JWT_ALGORITHM
         iss = settings.JWT_ISSUER
