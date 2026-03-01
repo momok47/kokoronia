@@ -87,6 +87,17 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    {% if next_topic_suggestion %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6><i class="fas fa-lightbulb"></i> 次回のおすすめ話題</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">{{ next_topic_suggestion }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     <!-- 標準出力 -->
                     {% if script_output %}

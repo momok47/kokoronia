@@ -383,6 +383,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 newSessionBtn.addEventListener('click', () => location.reload());
             }
         },
+
+        // innerHTMLに埋め込む文字列を最小限エスケープ
+        escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
         
         // 録音開始
         async startRecording() {
@@ -673,11 +683,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             ${result.summary ? `
                                 <div class="mt-3">
-                                    <p><strong>参加者:</strong> ${result.summary.participants.join(', ')}</p>
-                                    <p><strong>会話のトピック:</strong> ${result.summary.topics_detected.join(', ')}</p>
+                                    <p><strong>参加者:</strong> ${((result.summary.participant_names && result.summary.participant_names.length > 0)
+                                        ? result.summary.participant_names
+                                        : (result.summary.participants || []))
+                                        .map(name => this.escapeHtml(name))
+                                        .join(', ')}</p>
+                                    <p><strong>会話のトピック:</strong> ${(result.summary.topics_detected || [])
+                                        .map(topic => this.escapeHtml(topic))
+                                        .join(', ')}</p>
                                 </div>
                             ` : ''}
                         </div>
+                        ${result.next_topic_suggestion ? `
+                            <div class="card mx-auto mb-4" style="max-width: 600px;">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-lightbulb"></i> 次回のおすすめ話題</h6>
+                                </div>
+                                <div class="card-body text-start">
+                                    <p class="mb-0">${this.escapeHtml(result.next_topic_suggestion)}</p>
+                                </div>
+                            </div>
+                        ` : ''}
                         <div class="d-grid gap-2 mt-4" style="max-width: 400px; margin: 0 auto;">
                             <button type="button" class="btn btn-primary" onclick="location.reload()">
                                 <i class="fas fa-plus"></i> 新しいセッション

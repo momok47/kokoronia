@@ -1,5 +1,4 @@
 import uuid
-from typing import List
 
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import User
+from accounts.topic_suggestion_service import generate_next_topic_sentence
 from .serializers import (
     TopicSuggestRequestSerializer,
     TopicSuggestResponseSerializer,
@@ -40,7 +40,8 @@ class TopicSuggestView(APIView):
         if user is None:
             return Response({"detail": "指定したユーザーが見つかりません。"}, status=status.HTTP_404_NOT_FOUND)
 
-        suggestions = dummy_suggest_topics(
+        suggestions = suggest_topics_with_gpt(
+            user_id=data["user_id"],
             conversation=data["conversation"],
             topics_hint=data.get("topics_hint") or [],
             max_suggestions=data.get("max_suggestions") or 3,
@@ -70,30 +71,20 @@ def resolve_user(user_id: str):
             return None
 
 
-def dummy_suggest_topics(
-    conversation: List[dict],
-    topics_hint: List[str],
+def suggest_topics_with_gpt(
+    user_id: str,
+    conversation: list[dict],
+    topics_hint: list[str],
     max_suggestions: int,
-    context_tags: List[str],
+    context_tags: list[str],
 ):
-    """
-    シンプルなダミー提案: ヒントと会話末尾からタイトルを生成。
-    """
-    texts = [m.get("content", "") for m in conversation if m.get("content")]
-    base_titles = list(topics_hint)
-    if texts:
-        base_titles.append(texts[-1][:50])
-    if not base_titles:
-        base_titles = ["フリートーク", "最近の関心ごと"]
-
-    suggestions = []
-    for idx, title in enumerate(base_titles[:max_suggestions]):
-        suggestions.append(
-            {
-                "title": title or f"Suggestion {idx + 1}",
-                "summary": f"{title} について掘り下げる提案",
-                "confidence": max(0.0, 0.9 - 0.1 * idx),
-            }
-        )
-    return suggestions[:max_suggestions]
+    """画面表示と同じロジックで話題提案を1件返す。"""
+    partner_user_id = context_tags[0] if context_tags else user_id
+    sentence = generate_next_topic_sentence(user_id, partner_user_id)
+    return [
+        {
+            "title": "次回のおすすめ話題",
+            "summary": sentence,
+        }
+    ]
 

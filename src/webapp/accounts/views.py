@@ -21,6 +21,7 @@ import re
 from django.core.cache import cache
 from django.conf import settings
 from .forms import SignUpForm, LoginFrom
+from .topic_suggestion_service import generate_next_topic_sentence
 
 # デバッグモードの設定
 DEBUG_RECORDING = getattr(settings, 'DEBUG_RECORDING', settings.DEBUG)
@@ -349,6 +350,10 @@ class RunMainScriptView(LoginRequiredMixin, View):
                 'session_id': result.get('session_id'),
                 'analysis_results': result.get('analysis_results'),
             }
+            context['next_topic_suggestion'] = self.build_next_topic_suggestion(
+                speaker_tag_a=speaker_tag_a,
+                speaker_tag_b=speaker_tag_b,
+            )
             
             return render(request, 'accounts/script_results.html', context)
             
@@ -666,6 +671,14 @@ class RunMainScriptView(LoginRequiredMixin, View):
             debug_print(f"分析結果抽出エラー: {e}")
             return None
 
+    def build_next_topic_suggestion(self, speaker_tag_a, speaker_tag_b):
+        """DB上の興味関心スコアを使って、次回話題を1文だけ提案する。"""
+        try:
+            return generate_next_topic_sentence(speaker_tag_a, speaker_tag_b)
+        except Exception as e:
+            debug_print(f"話題提案生成エラー: {e}")
+            return "次回は、二人が最近気になっているテーマを1つ選んで深掘りしてみましょう。"
+
 
 class AudioDevicesAPIView(LoginRequiredMixin, View):
     """音声デバイス検出API"""
@@ -753,8 +766,8 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
             # ユーザーの存在確認
             from .models import User
             try:
-                User.objects.get(account_id=participant_a)
-                User.objects.get(account_id=participant_b)
+                user_a = User.objects.get(account_id=participant_a)
+                user_b = User.objects.get(account_id=participant_b)
             except User.DoesNotExist as e:
                 return JsonResponse({
                     'status': 'error',
@@ -778,11 +791,15 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
             analysis_result_b = self._process_user_audio(
                 audio_file_b, participant_b, f"{session_name}_device_b"
             )
+
+            def get_display_name(user):
+                full_name = f"{(user.last_name or '').strip()} {(user.first_name or '').strip()}".strip()
+                return full_name or user.account_id
             
             # レスポンスデータを作成
             response_data = {
                 'status': 'success',
-                'message': '2台同時録音セッションが正常に完了しました',
+                'message': '＼分析成功／',
                 'session_name': session_name,
                 'participant_a': participant_a,
                 'participant_b': participant_b,
@@ -792,6 +809,10 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
                 'analysis_b': analysis_result_b,
                 'summary': {
                     'participants': [participant_a, participant_b],
+                    'participant_names': [
+                        get_display_name(user_a),
+                        get_display_name(user_b),
+                    ],
                     'topics_detected': list(set([
                         analysis_result_a.get('best_topic', '不明'),
                         analysis_result_b.get('best_topic', '不明')
@@ -800,6 +821,10 @@ class ProcessDualRecordingView(LoginRequiredMixin, View):
                     'total_files_processed': 2
                 }
             }
+            response_data['next_topic_suggestion'] = generate_next_topic_sentence(
+                participant_a,
+                participant_b,
+            )
             
             return JsonResponse(response_data)
             
