@@ -84,7 +84,7 @@
     </header>
 
     <div class="overflow-x-auto">
-      <svg viewBox="0 0 1280 920" class="w-full h-auto min-w-[1100px]">
+      <svg viewBox="0 0 1280 1080" class="w-full h-auto min-w-[1100px]">
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
             <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"></polygon>
@@ -95,14 +95,14 @@
         <text x="40" y="40" class="layer-title">クライアント層</text>
         <line x1="40" y1="49" x2="1240" y2="38" stroke="#e2e8f0" stroke-dasharray="4"></line>
 
-        <text x="40" y="145" class="layer-title">Web / API 層</text>
+        <text x="40" y="145" class="layer-title">Web UI / API 層</text>
         <line x1="40" y1="153" x2="1240" y2="153" stroke="#e2e8f0" stroke-dasharray="4"></line>
 
-        <text x="40" y="390" class="layer-title">データ処理層</text>
+        <text x="40" y="390" class="layer-title">処理 / サービス層</text>
         <line x1="40" y1="398" x2="1240" y2="398" stroke="#e2e8f0" stroke-dasharray="4"></line>
 
-        <text x="40" y="700" class="layer-title">データ保存 / 未実装層</text>
-        <line x1="40" y1="708" x2="1240" y2="708" stroke="#e2e8f0" stroke-dasharray="4"></line>
+        <text x="40" y="760" class="layer-title">データ保存層</text>
+        <line x1="40" y1="768" x2="1240" y2="768" stroke="#e2e8f0" stroke-dasharray="4"></line>
 
         <!-- Nodes -->
         <g class="node">
@@ -113,37 +113,37 @@
         <g class="node">
           <rect x="530" y="70" width="220" height="58" rx="10" fill="#3b82f6"></rect>
           <text x="640" y="95" class="node-title">Web画面</text>
-          <text x="640" y="115" class="node-sub">録音操作 / 進捗表示 / 結果確認</text>
+          <text x="640" y="115" class="node-sub">ログイン / 録音 / 進捗 / 結果確認</text>
         </g>
 
         <g class="node">
           <rect x="530" y="185" width="220" height="58" rx="10" fill="#6366f1"></rect>
-          <text x="640" y="210" class="node-title">API受付</text>
-          <text x="640" y="230" class="node-sub">ルーティング / 入力検証</text>
+          <text x="640" y="210" class="node-title">Djangoルーティング</text>
+          <text x="640" y="230" class="node-sub">accounts views / DRF / OpenAPI</text>
         </g>
 
         <g class="node">
-          <rect x="160" y="285" width="230" height="68" rx="10" fill="#94a3b8"></rect>
-          <text x="275" y="312" class="node-title">API認証・認可</text>
-          <text x="275" y="333" class="node-sub">JWT / API-Key / Scope</text>
+          <rect x="145" y="285" width="260" height="68" rx="10" fill="#94a3b8"></rect>
+          <text x="275" y="312" class="node-title">認証</text>
+          <text x="275" y="333" class="node-sub">Web: Session / REST: JWT・API-Key・Scope</text>
         </g>
 
         <g class="node">
           <rect x="450" y="285" width="380" height="68" rx="10" fill="#10b981"></rect>
-          <text x="640" y="312" class="node-title">話題提案API</text>
-          <text x="640" y="333" class="node-sub">/api/v1/topics/suggest（現状は話題のみダミー提案）</text>
+          <text x="640" y="312" class="node-title">話題提案REST API</text>
+          <text x="640" y="333" class="node-sub">/api/v1/topics/suggest + /api/v1/users</text>
         </g>
 
         <g class="node">
-          <rect x="890" y="285" width="240" height="68" rx="10" fill="#f59e0b"></rect>
-          <text x="1010" y="312" class="node-title">録音処理API</text>
-          <text x="1010" y="333" class="node-sub">音声受信 / バッチ起動</text>
+          <rect x="870" y="285" width="280" height="68" rx="10" fill="#f59e0b"></rect>
+          <text x="1010" y="312" class="node-title">録音・進捗ビュー</text>
+          <text x="1010" y="333" class="node-sub">process-recording / dual / run-main-script</text>
         </g>
 
         <g class="node">
           <rect x="80" y="455" width="250" height="68" rx="10" fill="#64748b"></rect>
-          <text x="205" y="482" class="node-title">バッチ実行</text>
-          <text x="205" y="503" class="node-sub">main.pyに処理開始を指示</text>
+          <text x="205" y="482" class="node-title">main.py サブプロセス起動</text>
+          <text x="205" y="503" class="node-sub">run-main-script から scripts/main.py を実行</text>
         </g>
 
         <g class="node">
@@ -155,13 +155,13 @@
         <g class="node">
           <rect x="470" y="535" width="170" height="62" rx="10" fill="#f59e0b"></rect>
           <text x="555" y="561" class="node-title">興味関心分析</text>
-          <text x="555" y="581" class="node-sub">Zero Shot Learning</text>
+          <text x="555" y="581" class="node-sub">Transformers / Zero Shot</text>
         </g>
 
         <g class="node">
           <rect x="470" y="630" width="170" height="62" rx="10" fill="#f59e0b"></rect>
-          <text x="555" y="656" class="node-title">トピックスコア更新</text>
-          <text x="555" y="676" class="node-sub">best_topic / best_score</text>
+          <text x="555" y="656" class="node-title">UserTopicScore更新</text>
+          <text x="555" y="676" class="node-sub">best_topic / best_score を保存</text>
         </g>
 
         <g class="node">
@@ -172,21 +172,23 @@
 
         <g class="node">
           <rect x="80" y="565" width="260" height="68" rx="10" fill="#94a3b8"></rect>
-          <text x="210" y="592" class="node-title">ユーザー情報管理</text>
-          <text x="210" y="613" class="node-sub">accountsテーブル(ユーザー情報，トピックスコア)</text>
+          <text x="210" y="592" class="node-title">Django状態管理</text>
+          <text x="210" y="613" class="node-sub">User / UserTopicScore / cache</text>
         </g>
 
         <g class="node">
-          <rect x="80" y="720" width="260" height="68" rx="10" fill="#475569"></rect>
-          <text x="210" y="747" class="node-title">データベース</text>
-          <text x="210" y="768" class="node-sub">SQLite (DATABASE_URLを設定すればPostgreSQL)</text>
+          <rect x="860" y="565" width="270" height="68" rx="10" fill="#0ea5e9"></rect>
+          <text x="995" y="592" class="node-title">話題提案モジュール</text>
+          <text x="995" y="613" class="node-sub">topic_suggestion_service.py / GPT-4o-mini</text>
         </g>
 
         <g class="node">
-          <rect x="860" y="720" width="300" height="68" rx="10" fill="none" stroke="#cbd5e1" stroke-width="2"></rect>
-          <text x="1010" y="748" class="node-title-dark">具体的な話題提案</text>
-          <text x="1010" y="768" class="node-sub-dark">未実装</text>
+          <rect x="80" y="840" width="260" height="68" rx="10" fill="#475569"></rect>
+          <text x="210" y="867" class="node-title">データベース</text>
+          <text x="210" y="888" class="node-sub">SQLite既定 / DockerではPostgreSQL</text>
         </g>
+
+
 
         <!-- Edges -->
         <path class="edge" d="M 640 46 L 640 70"></path>
@@ -196,7 +198,12 @@
         <path class="edge" d="M 640 243 L 640 265 L 1010 265 L 1010 285"></path>
 
         <path class="edge" d="M 500 353 L 420 353 L 420 540 L 210 540 L 210 565"></path>
-        <path class="edge" d="M 210 633 L 210 720"></path>
+        <path class="edge" d="M 210 633 L 210 840"></path>
+        <path class="edge" d="M 250 840 L 250 633"></path>
+        <path class="edge" d="M 110 840 L 110 260 L 160 260 L 160 320"></path>
+        <path class="edge" d="M 830 340 L 860 340 L 860 565 L 995 565"></path>
+        <path class="edge" d="M 860 599 L 760 599 L 760 840 L 340 840"></path>
+        <path class="edge" d="M 340 900 L 760 900 L 760 605 L 860 605"></path>
 
         <path class="edge" d="M 1010 353 L 1010 445"></path>
         <path class="edge" d="M 930 353 L 930 420 L 580 420 L 580 440"></path>
@@ -212,8 +219,6 @@
         <path class="edge" d="M 890 319 L 760 319 L 760 385 L 205 385 L 205 455"></path>
         <path class="edge" d="M 330 489 L 400 489 L 400 471 L 470 471"></path>
 
-        <path class="edge-future" d="M 830 319 L 875 319 L 875 720 L 1010 720"></path>
-
         <!-- Processing status back to UI -->
         <path class="edge" d="M 970 285 L 970 120 L 750 120"></path>
 
@@ -222,7 +227,7 @@
         <text class="edge-label" x="661" y="180">HTTP request</text>
 
         <rect class="edge-label-bg" x="1016" y="382" width="210" height="14"></rect>
-        <text class="edge-label" x="1021" y="392">multipart: audio / participant / session</text>
+        <text class="edge-label" x="1021" y="392">multipart: audio / participants / session</text>
 
         <rect class="edge-label-bg" x="430" y="360" width="140" height="14"></rect>
         <text class="edge-label" x="435" y="370">ユーザー存在確認（read）</text>
@@ -230,22 +235,26 @@
         <rect class="edge-label-bg" x="708" y="557" width="108" height="14"></rect>
         <text class="edge-label" x="713" y="567">transcription JSON</text>
 
+        <rect class="edge-label-bg" x="864" y="346" width="188" height="14"></rect>
+        <text class="edge-label" x="869" y="356">同一アプリ内サービス呼び出し</text>
 
-        <rect class="edge-label-bg" x="780" y="126" width="150" height="14"></rect>
-        <text class="edge-label" x="785" y="136">進捗表示（run_main_script経路）</text>
+        <rect class="edge-label-bg" x="590" y="586" width="160" height="14"></rect>
+        <text class="edge-label" x="595" y="596">UserTopicScore参照（read）</text>
+
+        <rect class="edge-label-bg" x="590" y="884" width="170" height="14"></rect>
+        <text class="edge-label" x="595" y="894">トピックスコア返却（query結果）</text>
+
+        <rect class="edge-label-bg" x="258" y="724" width="188" height="14"></rect>
+        <text class="edge-label" x="263" y="734">録音前のユーザー存在確認（read）</text>
+
+        <rect class="edge-label-bg" x="40" y="540" width="166" height="14"></rect>
+        <text class="edge-label" x="45" y="550">ログイン / account_id照合（read）</text>
+
+        <rect class="edge-label-bg" x="780" y="126" width="190" height="14"></rect>
+        <text class="edge-label" x="785" y="136">JSON応答 / progress API / 結果表示</text>
 
         <rect class="edge-label-bg" x="600" y="412" width="100" height="14"></rect>
         <text class="edge-label" x="605" y="422">gs:// URIで認識実行</text>
-
-        <!-- Legend -->
-        <g transform="translate(40, 890)">
-          <text class="legend-title" x="0" y="0">凡例</text>
-          <line x1="55" y1="-5" x2="110" y2="-5" class="edge"></line>
-          <text class="legend-text" x="118" y="-2">現状稼働フロー</text>
-
-          <line x1="250" y1="-5" x2="305" y2="-5" class="edge-future"></line>
-          <text class="legend-text" x="313" y="-2">実装中</text>
-        </g>
       </svg>
     </div>
   </div>

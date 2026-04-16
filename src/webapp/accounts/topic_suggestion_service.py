@@ -39,7 +39,7 @@ def generate_next_topic_sentence(speaker_tag_a: str, speaker_tag_b: str) -> str:
 
     prompt = f"""
 あなたは会話支援アシスタントです。
-次の2人の興味関心スコア（トピックラベルとスコア）を分析し、次回の会話に最適な**具体的な話題を1つ提案**してください。
+次の2人の興味関心スコア（トピックラベルとスコア）を分析し、次回の会話に最適な**個性的で具体的な話題を1つ提案**してください。
 
 出力要件:
 - 返答は日本語の1文のみで、ユーザーにそのまま提示できる自然な語りかけの口調にすること。
@@ -47,7 +47,7 @@ def generate_next_topic_sentence(speaker_tag_a: str, speaker_tag_b: str) -> str:
 - 共通の興味がない場合やデータがない場合は、誰もが話しやすい一般的な話題（天気、最近のニュースなど）を提案すること。
 
 <出力例>
-最近見た映画について話してみませんか？
+映画に出てきた食べてみたいキャンプ飯は？
 
 ユーザーA({speaker_tag_a})の興味関心:
 {profile_a or "データなし"}
@@ -59,7 +59,7 @@ def generate_next_topic_sentence(speaker_tag_a: str, speaker_tag_b: str) -> str:
     try:
         client = OpenAI(api_key=api_key)
         response = client.responses.create(
-            model="gpt-4o-mini",
+            model="gpt-5.4-nano",
             input=prompt,
             temperature=0.5,
         )

@@ -423,6 +423,8 @@ pygments==2.19.2
     # via rich
 pyjwt==2.10.1
     # via lounge
+pymysql==1.1.2
+    # via lounge
 pyparsing==3.2.5
     # via matplotlib
 pysocks==1.7.1

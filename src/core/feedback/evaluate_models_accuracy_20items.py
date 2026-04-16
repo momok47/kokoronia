@@ -191,7 +191,7 @@ class MultiItemModelAccuracyEvaluator:
             test_data = self.load_kokorochat_test_dataset(max_samples=max_samples, seed=seed)
             
             # デフォルトモデルIDを設定（実際のファインチューニング済みモデルがない場合）
-            model_ids = ["gpt-4o-mini"]  # デフォルトモデル
+            model_ids = ["gpt-5.4-nano"]  # デフォルトモデル
             
             return model_ids, test_data
         else:
