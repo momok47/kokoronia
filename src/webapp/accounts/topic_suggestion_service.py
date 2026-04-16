@@ -5,12 +5,6 @@ from openai import OpenAI
 from .models import UserTopicScore
 
 
-DEFAULT_NO_API_KEY_SUGGESTION = "次回は、お互いが最近関心を持っているテーマについて、印象に残った出来事を1つずつ共有してみましょう。"
-DEFAULT_NO_DATA_SUGGESTION = "次回は、最近気になっているニュースや出来事を1つずつ持ち寄って話してみましょう。"
-DEFAULT_ERROR_SUGGESTION = "次回は、二人が最近気になっているテーマを1つ選んで深掘りしてみましょう。"
-DEFAULT_EMPTY_OUTPUT_SUGGESTION = "次回は、二人が共通して興味を持つテーマについて最近の体験を交えて話してみましょう。"
-
-
 def get_user_topic_scores_text(account_id: str) -> str:
     """score > 0 の全トピックスコアをプロンプト用に整形する。"""
     rows = list(
@@ -30,12 +24,12 @@ def generate_next_topic_sentence(speaker_tag_a: str, speaker_tag_b: str) -> str:
     """2ユーザーの興味関心スコアから次回話題を1文で生成する。"""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return DEFAULT_NO_API_KEY_SUGGESTION
+        raise ValueError("OPENAI_API_KEY is not set")
 
     profile_a = get_user_topic_scores_text(speaker_tag_a)
     profile_b = get_user_topic_scores_text(speaker_tag_b)
     if not profile_a and not profile_b:
-        return DEFAULT_NO_DATA_SUGGESTION
+        raise ValueError("No topic score data found for both users")
 
     prompt = f"""
 あなたは会話支援アシスタントです。
@@ -65,7 +59,7 @@ def generate_next_topic_sentence(speaker_tag_a: str, speaker_tag_b: str) -> str:
         )
         suggestion = (response.output_text or "").strip()
         if not suggestion:
-            return DEFAULT_EMPTY_OUTPUT_SUGGESTION
+            raise ValueError("OpenAI returned empty output")
         return " ".join(suggestion.splitlines())[:180]
-    except Exception:
-        return DEFAULT_ERROR_SUGGESTION
+    except Exception as exc:
+        raise RuntimeError("Failed to generate next topic sentence") from exc
